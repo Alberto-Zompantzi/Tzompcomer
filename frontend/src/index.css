@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-shopify-gray: #F6F6F6;
+  --color-shopify-text: #121212;
+  --color-tzomp-azul: #0033A0;
+  --color-tzomp-dorado: #D4AF37;
+  --color-tzomp-azul-oscuro: #001A54;
+}
+
+@layer base {
+  body {
+    @apply bg-shopify-gray text-shopify-text antialiased;
+  }
+  
+  * {
+    @apply border-gray-200;
+  }
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
