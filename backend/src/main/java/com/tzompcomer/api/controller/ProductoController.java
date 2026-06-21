@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -65,12 +67,17 @@ public class ProductoController {
     }
 
     @PostMapping("/admin/upload-excel")
-    public ResponseEntity<String> uploadExcel(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<Map<String, Object>> uploadExcel(@RequestParam("file") MultipartFile file) {
         try {
-            excelImportService.importExcel(file);
-            return ResponseEntity.ok("Importación exitosa");
+            Map<String, Object> result = excelImportService.importExcel(file);
+            result.put("status", "success");
+            result.put("message", "Importación completada exitosamente");
+            return ResponseEntity.ok(result);
         } catch (IOException e) {
-            return ResponseEntity.internalServerError().body("Error al importar el archivo");
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("status", "error");
+            errorResult.put("message", "Error al importar el archivo: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(errorResult);
         }
     }
 }

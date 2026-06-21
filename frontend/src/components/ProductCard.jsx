@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import useCartStore from '../store/useCartStore';
+import DynamicProductImage from './DynamicProductImage';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCartStore();
@@ -20,33 +21,7 @@ const ProductCard = ({ product }) => {
     >
       {/* Imagen */}
       <div className="relative aspect-square overflow-hidden bg-shopify-gray">
-        {product.imagenUrl ? (
-          <img
-            src={product.imagenUrl}
-            alt={product.nombre}
-            className={`h-full w-full object-cover transition-all duration-500 ${
-              isHovered ? 'scale-105' : 'scale-100'
-            }`}
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center text-gray-300">
-            <svg
-              className="h-20 w-20 mb-2"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="1"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M2.25 18.75h19.5"
-              />
-            </svg>
-            <span className="text-sm font-medium">Sin imagen</span>
-          </div>
-        )}
+        <DynamicProductImage product={product} isHovered={isHovered} />
         
         {/* Badge de disponible */}
         {product.disponible && (
