@@ -1,17 +1,29 @@
 import { useState, useEffect } from "react";
 import Header from "./components/Header";
-import DepartmentNav from "./components/DepartmentNav";
+import DepartmentNav, {
+  CATEGORIAS_COMERCIALES,
+} from "./components/DepartmentNav";
 import ProductGrid from "./components/ProductGrid";
 import CheckoutModal from "./components/CheckoutModal";
 import AdminPanel from "./components/AdminPanel";
 
 const API_BASE_URL = "http://localhost:8080/api";
 
+// Lista de DEPARTAMENTOS PERMITIDOS (estricta)
+const DEPARTAMENTOS_PERMITIDOS = [
+  "desechable",
+  "ferreteria",
+  "gaviota",
+  "inix",
+  "materia prima",
+  "plastico",
+];
+
 function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [products, setProducts] = useState([]);
-  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -56,7 +68,29 @@ function App() {
     setDataRefreshKey((prev) => prev + 1);
   };
 
+  // Obtener la categoría comercial seleccionada
+  const categoriaSeleccionada = CATEGORIAS_COMERCIALES.find(
+    (c) => c.id === selectedCategoryId,
+  );
+
+  // Función para verificar si un producto está permitido
+  const esProductoPermitido = (product) => {
+    const nombreDepartamento = product.departamento?.nombre?.toLowerCase();
+    return DEPARTAMENTOS_PERMITIDOS.includes(nombreDepartamento);
+  };
+
+  // Función para filtrar productos por categoría comercial
+  const filtrarPorCategoria = (product) => {
+    const nombreDepartamento = product.departamento?.nombre?.toLowerCase();
+    return categoriaSeleccionada.departamentos.includes(nombreDepartamento);
+  };
+
+  // FILTRO ESTRICTO FINAL
   const filteredProducts = products.filter((product) => {
+    // 1. Primero: SOLO productos permitidos
+    if (!esProductoPermitido(product)) return false;
+
+    // 2. Segundo: Filtrar por búsqueda
     const matchesSearch =
       searchTerm === "" ||
       product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -64,11 +98,10 @@ function App() {
       (product.categoria &&
         product.categoria.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesDepartment =
-      selectedDepartment === null ||
-      (product.departamento && product.departamento.id === selectedDepartment);
+    // 3. Tercero: Filtrar por categoría comercial
+    const matchesCategoria = filtrarPorCategoria(product);
 
-    return matchesSearch && matchesDepartment;
+    return matchesSearch && matchesCategoria;
   });
 
   const handleProceedToCheckout = () => {
@@ -78,10 +111,10 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-shopify-gray flex items-center justify-center">
+      <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-tzomp-azul border-t-transparent mx-auto mb-4"></div>
-          <p className="text-shopify-text font-medium">Cargando productos...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#0033A0] border-t-transparent mx-auto mb-4"></div>
+          <p className="text-[#121212] font-medium">Cargando productos...</p>
         </div>
       </div>
     );
@@ -89,7 +122,7 @@ function App() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-shopify-gray flex items-center justify-center">
+      <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
         <div className="text-center max-w-md p-6 bg-white rounded-2xl shadow-lg">
           <div className="text-red-500 mb-4">
             <svg
@@ -107,7 +140,7 @@ function App() {
               />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-shopify-text mb-2">
+          <h2 className="text-xl font-bold text-[#121212] mb-2">
             Error de Conexión
           </h2>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -127,7 +160,7 @@ function App() {
       <div className="min-h-screen">
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
-            <h1 className="text-xl font-black text-shopify-text">
+            <h1 className="text-xl font-black text-[#121212]">
               <span className="text-[#0033A0]">TZOMP</span>
               <span className="text-[#D4AF37]">COMER</span>
               <span className="text-sm font-medium text-gray-400 ml-2">
@@ -161,7 +194,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-shopify-gray">
+    <div className="min-h-screen bg-[#F6F6F6]">
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8 flex items-center justify-end">
           <button
@@ -200,17 +233,14 @@ function App() {
       />
       <div className="pt-0">
         <DepartmentNav
-          departments={departments}
-          selectedDepartment={selectedDepartment}
-          onSelectDepartment={setSelectedDepartment}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
         />
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-3xl font-black text-shopify-text">
-                {selectedDepartment
-                  ? departments.find((d) => d.id === selectedDepartment)?.nombre
-                  : "Todos los productos"}
+              <h2 className="text-3xl font-black text-[#121212]">
+                {categoriaSeleccionada.nombre}
               </h2>
               <p className="text-sm text-gray-500 mt-1">
                 {filteredProducts.length}{" "}
@@ -237,33 +267,6 @@ function App() {
                   />
                 </svg>
                 Refrescar
-              </button>
-              <button
-                onClick={() => {
-                  console.log("--- DATOS DE DEPARTAMENTOS ---");
-                  console.log(departments);
-                  console.log("--- DATOS DE PRODUCTOS ---");
-                  console.log(products);
-                  alert(
-                    "Datos copiados a la consola del navegador! Abre F12 para verlos.",
-                  );
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold transition-colors"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                  />
-                </svg>
-                Ver datos en consola
               </button>
             </div>
           </div>

@@ -15,45 +15,78 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 
+// Helper: Obtener imagen genérica por palabra clave en la descripción
+const getAutomatedImage = (product) => {
+  // Combinamos nombre y descripción para mayor cobertura
+  const texto = (product.nombre + " " + (product.descripcion || "")).toLowerCase();
+
+  // --- ETIQUETAS PRINCIPALES DE TU NEGOCIO ---
+  // AGREGA AQUI NUEVAS PALABRAS CLAVE E IMAGENES FACILMENTE:
+  if (texto.includes("vaso")) return "/assets/productos/genericos/vaso.png";
+  if (texto.includes("bolsa")) return "/assets/productos/genericos/bolsa.png";
+  if (texto.includes("plato")) return "/assets/productos/genericos/plato.png";
+  if (texto.includes("tapa")) return "/assets/productos/genericos/tapa.png";
+  if (texto.includes("domo")) return "/assets/productos/genericos/domo.png";
+  if (texto.includes("harina")) return "/assets/productos/genericos/harina.png";
+
+  // Ejemplos de como expandir:
+  // if (texto.includes("servilleta")) return "/assets/productos/genericos/servilleta.png";
+  // if (texto.includes("caja")) return "/assets/productos/genericos/caja.png";
+  // if (texto.includes("charola")) return "/assets/productos/genericos/charola.png";
+
+  // Si no hay coincidencia, retorna null para usar el icono vectorial
+  return null;
+};
+
+// Helper para extraer un identificador corto del producto (SKU o parte de desc)
+const getProductIdentifier = (product) => {
+  // Prioridad 1: SKU
+  if (product.sku && product.sku.trim()) {
+    return product.sku.trim().toUpperCase();
+  }
+
+  // Prioridad 2: Extraer número/medida de nombre/descripción (ej: "1 KG", "No. 8", "500 ML")
+  const fullText = (product.nombre + " " + (product.descripcion || "")).toUpperCase();
+  const patterns = [
+    /\d+\s*(?:KG|G|L|ML|OZ|CM|M|MM|IN)/g, // Medidas: 1 KG, 500 ML
+    /NO\.\s*\d+/g, // Números: No. 8, No. 12
+    /\d+X\d+/g, // Dimensiones: 10X10
+    /\d+PZ|\d+PZS|\d+PACK/g, // Paquetes: 100 PZ
+  ];
+
+  for (const pattern of patterns) {
+    const match = fullText.match(pattern);
+    if (match) return match[0];
+  }
+
+  // Por defecto: primeros 12 caracteres del nombre
+  return product.nombre?.substring(0, 12).toUpperCase() || "PRODUCTO";
+};
+
 const DynamicProductImage = ({ product, isHovered }) => {
   const hasValidImage =
     product.imagenUrl &&
     product.imagenUrl.trim() !== "" &&
     product.imagenUrl.trim().toLowerCase() !== "categoria";
 
+  // Obtener imagen genérica por palabra clave
+  const automatedImage = getAutomatedImage(product);
+  const productLabel = getProductIdentifier(product);
+
   // Mapeo de departamentos a iconos - MUY FLEXIBLE
   const getDepartmentIcon = (deptoName) => {
     if (!deptoName) return <MoreHorizontal size={48} />;
 
-    const name = deptoName.toLowerCase();
+    let name = deptoName.toLowerCase();
 
-    // Abarrotes / Alimentos
-    if (
-      name.includes("abarrote") ||
-      name.includes("alimento") ||
-      name.includes("comida") ||
-      name.includes("snack") ||
-      name.includes("galleta") ||
-      name.includes("dulce") ||
-      name.includes("pan") ||
-      name.includes("pastel")
-    ) {
-      return <Utensils size={56} />;
-    }
-    // Bebidas
-    if (
-      name.includes("bebida") ||
-      name.includes("agua") ||
-      name.includes("refresco") ||
-      name.includes("jugo") ||
-      name.includes("leche") ||
-      name.includes("cerveza")
-    ) {
-      return <Droplets size={56} />;
-    }
+    // MAPEO ESPECIAL: Inix → Desechable, Gaviota → Plástico
+    if (name.includes("inix")) name = "desechable";
+    if (name.includes("gaviota")) name = "plastico";
+
     // Desechables / Plásticos
     if (
       name.includes("desechable") ||
+      name.includes("plastico") ||
       name.includes("plástico") ||
       name.includes("vaso") ||
       name.includes("plato") ||
@@ -61,71 +94,6 @@ const DynamicProductImage = ({ product, isHovered }) => {
       name.includes("bolsa")
     ) {
       return <ShoppingBag size={56} />;
-    }
-    // Café
-    if (
-      name.includes("café") ||
-      name.includes("cafe") ||
-      name.includes("té") ||
-      name.includes("te")
-    ) {
-      return <Coffee size={56} />;
-    }
-    // Ropa / Calzado
-    if (
-      name.includes("ropa") ||
-      name.includes("zapato") ||
-      name.includes("calzado") ||
-      name.includes("playera") ||
-      name.includes("camisa") ||
-      name.includes("pantalón")
-    ) {
-      return <Shirt size={56} />;
-    }
-    // Hogar / Limpieza
-    if (
-      name.includes("hogar") ||
-      name.includes("limpieza") ||
-      name.includes("mueble") ||
-      name.includes("silla") ||
-      name.includes("mesa")
-    ) {
-      return <Home size={56} />;
-    }
-    // Electrónica / Tecnología
-    if (
-      name.includes("electrónica") ||
-      name.includes("tecnología") ||
-      name.includes("celular") ||
-      name.includes("telefono") ||
-      name.includes("computadora")
-    ) {
-      return <Zap size={56} />;
-    }
-    // Juguetes
-    if (
-      name.includes("juguete") ||
-      name.includes("juego") ||
-      name.includes("pelota")
-    ) {
-      return <Gamepad2 size={56} />;
-    }
-    // Papelería
-    if (
-      name.includes("libro") ||
-      name.includes("papelería") ||
-      name.includes("libreta") ||
-      name.includes("lapiz")
-    ) {
-      return <BookOpen size={56} />;
-    }
-    // Flores / Decoración
-    if (
-      name.includes("flor") ||
-      name.includes("decoración") ||
-      name.includes("planta")
-    ) {
-      return <Flower2 size={56} />;
     }
     // Materias Primas / Granos
     if (
@@ -138,61 +106,91 @@ const DynamicProductImage = ({ product, isHovered }) => {
     ) {
       return <Box size={56} />;
     }
-    // Envíos / Paquetería
+    // Ferretería y Herramientas
     if (
-      name.includes("envío") ||
-      name.includes("paquete") ||
-      name.includes("entrega")
+      name.includes("ferreteria") ||
+      name.includes("ferretería") ||
+      name.includes("herramienta")
     ) {
-      return <Truck size={56} />;
+      return <Zap size={56} />;
     }
 
     // Icono por defecto para TODO lo demás
-    return <Sparkles size={56} />;
+    return <ShoppingBag size={56} />;
   };
 
-  if (hasValidImage) {
-    return (
-      <img
-        src={product.imagenUrl}
-        alt={product.nombre}
-        className={`h-full w-full object-cover transition-all duration-500 ${
-          isHovered ? "scale-105" : "scale-100"
-        }`}
-      />
-    );
-  }
-
   return (
-    <div className="flex h-full w-full flex-col items-center justify-between bg-shopify-gray p-4">
-      {/* Tzompcomer superior */}
-      <div className="flex items-center gap-1">
-        <span className="text-xs font-black tracking-tight text-[#0033A0]">
-          TZOMP
-        </span>
-        <span className="text-xs font-black tracking-tight text-[#D4AF37]">
-          COMER
-        </span>
-      </div>
+    <div className="relative h-full w-full overflow-hidden">
+      {/* Imagen o placeholder */}
+      <div className="h-full w-full">
+        {/* Prioridad 1: Imagen original del producto */}
+        {hasValidImage && (
+          <img
+            src={product.imagenUrl}
+            alt={product.nombre}
+            className={`h-full w-full object-cover transition-all duration-500 ${
+              isHovered ? "scale-105" : "scale-100"
+            }`}
+          />
+        )}
 
-      {/* Icono central */}
-      <div
-        className={`flex items-center justify-center transition-transform duration-300 ${isHovered ? "scale-110" : ""}`}
-      >
-        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-sm">
-          <div className="text-[#0033A0]">
-            {getDepartmentIcon(
-              product.departamento?.nombre || product.categoria,
-            )}
+        {/* Prioridad 2: Imagen genérica por palabra clave */}
+        {!hasValidImage && automatedImage && (
+          <img
+            src={automatedImage}
+            alt={product.nombre}
+            className={`h-full w-full object-cover transition-all duration-500 ${
+              isHovered ? "scale-105" : "scale-100"
+            }`}
+            onError={(e) => {
+              e.target.style.display = "none";
+            }}
+          />
+        )}
+
+        {/* Prioridad 3: Icono vectorial por departamento */}
+        {!hasValidImage && !automatedImage && (
+          <div className="flex h-full w-full flex-col items-center justify-between bg-shopify-gray p-4">
+            {/* Tzompcomer superior */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-black tracking-tight text-[#0033A0]">
+                TZOMP
+              </span>
+              <span className="text-xs font-black tracking-tight text-[#D4AF37]">
+                COMER
+              </span>
+            </div>
+
+            {/* Icono central */}
+            <div
+              className={`flex items-center justify-center transition-transform duration-300 ${isHovered ? "scale-110" : ""}`}
+            >
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-sm">
+                <div className="text-[#0033A0]">
+                  {getDepartmentIcon(
+                    product.departamento?.nombre || product.categoria,
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Nombre de categoría inferior */}
+            <div className="max-w-full text-center">
+              <p className="line-clamp-2 text-xs font-bold uppercase tracking-wide text-gray-500">
+                {product.departamento?.nombre || product.categoria || "Producto"}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Nombre de categoría inferior */}
-      <div className="max-w-full text-center">
-        <p className="line-clamp-2 text-xs font-bold uppercase tracking-wide text-gray-500">
-          {product.departamento?.nombre || product.categoria || "Producto"}
-        </p>
+      {/* Etiqueta flotante PREMIUM - Esquina inferior izquierda */}
+      <div className="absolute bottom-3 left-3 z-10">
+        <div className="backdrop-blur-sm bg-white/90 border border-gray-200/70 px-2.5 py-1.5 rounded-full shadow-sm">
+          <p className="text-[10px] font-semibold tracking-wider text-gray-700 uppercase leading-tight">
+            {productLabel}
+          </p>
+        </div>
       </div>
     </div>
   );

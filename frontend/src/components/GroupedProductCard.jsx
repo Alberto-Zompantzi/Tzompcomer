@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import useCartStore from '../store/useCartStore';
-import DynamicProductImage from './DynamicProductImage';
 
-const ProductCard = ({ product }) => {
+const GroupedProductCard = ({ familyGroup }) => {
   const { addToCart } = useCartStore();
+  const [selectedProductIndex, setSelectedProductIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
 
+  const selectedProduct = familyGroup.products[selectedProductIndex];
+
   const handleAddToCart = () => {
-    addToCart(product);
+    addToCart(selectedProduct);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 1500);
   };
@@ -19,39 +21,53 @@ const ProductCard = ({ product }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Imagen */}
       <div className="relative aspect-square overflow-hidden bg-shopify-gray">
-        <DynamicProductImage product={product} isHovered={isHovered} />
-        
-        {/* Badge de disponible (solo indicativo, no bloqueante) */}
-        {product.disponible && (
+        <img
+          src={familyGroup.image}
+          alt={familyGroup.name}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        {selectedProduct.disponible && (
           <span className="absolute left-3 top-3 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
             Disponible
           </span>
         )}
-        {!product.disponible && (
+        {!selectedProduct.disponible && (
           <span className="absolute left-3 top-3 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
             Consultar disponibilidad
           </span>
         )}
       </div>
 
-      {/* Contenido */}
       <div className="flex flex-1 flex-col p-4">
         <div className="mb-2">
-          <p className="text-xs font-medium text-gray-400 mb-1">{product.sku}</p>
-          <h3 className="line-clamp-2 text-sm font-semibold text-shopify-text leading-snug">
-            {product.nombre}
+          <p className="text-xs font-medium text-gray-400 mb-1">{selectedProduct.sku}</p>
+          <h3 className="text-sm font-semibold text-shopify-text leading-snug">
+            {familyGroup.name}
           </h3>
         </div>
-        
+
+        <div className="mb-3">
+          <select
+            value={selectedProductIndex}
+            onChange={(e) => setSelectedProductIndex(parseInt(e.target.value))}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0033A0] focus:border-[#0033A0] outline-none transition-colors"
+          >
+            {familyGroup.products.map((product, index) => (
+              <option key={product.id} value={index}>
+                {product.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="mt-auto">
           <div className="mb-3">
             <span className="text-2xl font-black text-[#0033A0]">
-              ${product.precio.toFixed(2)}
+              ${selectedProduct.precio.toFixed(2)}
             </span>
           </div>
-          
+
           <button
             onClick={handleAddToCart}
             className={`flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${
@@ -100,4 +116,4 @@ const ProductCard = ({ product }) => {
   );
 };
 
-export default ProductCard;
+export default GroupedProductCard;
