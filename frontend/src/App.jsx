@@ -1,13 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import {
+  getFamiliesByCategoryId,
+  CATEGORIA_MAPPING,
+} from "./utils/productGrouping";
 import Header from "./components/Header";
 import DepartmentNav, {
   CATEGORIAS_COMERCIALES,
 } from "./components/DepartmentNav";
 import ProductGrid from "./components/ProductGrid";
 import CheckoutModal from "./components/CheckoutModal";
+import Hero from "./components/Hero";
+import Locations from "./components/Locations";
+import Footer from "./components/Footer";
 import AdminPanel from "./components/AdminPanel";
+import useCartStore from "./store/useCartStore";
 
 const API_BASE_URL = "http://localhost:8080/api";
+const PASSWORD_ADMIN_SECRETA = "TzompAdmin2026!";
 
 // Lista de DEPARTAMENTOS PERMITIDOS (estricta)
 const DEPARTAMENTOS_PERMITIDOS = [
@@ -20,16 +29,93 @@ const DEPARTAMENTOS_PERMITIDOS = [
 ];
 
 function App() {
-  const [showAdmin, setShowAdmin] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("todos");
+  const [subcategoriaSeleccionada, setSubcategoriaSeleccionada] =
+    useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
+  const { clearCart } = useCartStore();
+
+  // Función para manejar el cambio de categoría con reset completo
+  const handleCategoryChange = (id) => {
+    console.log("Cambiando a categoría:", id);
+    setSelectedCategoryId(id);
+    setSubcategoriaSeleccionada(null);
+    setSearchTerm("");
+  };
+
+  // Resetear subcategoría cuando cambie la categoría principal
+  useEffect(() => {
+    setSubcategoriaSeleccionada(null);
+  }, [selectedCategoryId]);
+
+  const handleAdminClick = () => {
+    const input = prompt("Ingrese la contraseña de administrador:");
+    if (input === PASSWORD_ADMIN_SECRETA) {
+      setIsAdminMode(!isAdminMode);
+      if (!isAdminMode) {
+        alert("Modo administrador activado correctamente!");
+      }
+    } else if (input !== null) {
+      alert("Contraseña incorrecta!");
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    try {
+      await fetch(`${API_BASE_URL}/productos/${productId}`, {
+        method: "DELETE",
+      });
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+    } catch (err) {
+      console.error("Error deleting product:", err);
+    }
+  };
+
+  const handleUpdateProduct = async (productId, updatedProduct) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/productos/${productId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedProduct),
+      });
+      const savedProduct = await res.json();
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? savedProduct : p)),
+      );
+    } catch (err) {
+      console.error("Error updating product:", err);
+    }
+  };
+
+  const handleSaveProduct = async (productId, productData) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/productos/${productId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(productData),
+      });
+      const savedProduct = await res.json();
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? savedProduct : p)),
+      );
+    } catch (err) {
+      console.error("Error saving product:", err);
+      throw err; // Propagate error to show user feedback
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -68,9 +154,19 @@ function App() {
     setDataRefreshKey((prev) => prev + 1);
   };
 
-  // Obtener la categoría comercial seleccionada
+  // Obtener la categoría comercial seleccionada y familia
   const categoriaSeleccionada = CATEGORIAS_COMERCIALES.find(
     (c) => c.id === selectedCategoryId,
+  );
+
+  const familiasCategorias = useMemo(
+    () => getFamiliesByCategoryId(selectedCategoryId),
+    [selectedCategoryId],
+  );
+
+  const familiaSeleccionada = useMemo(
+    () => familiasCategorias.find((f) => f.id === subcategoriaSeleccionada),
+    [familiasCategorias, subcategoriaSeleccionada],
   );
 
   // Función para verificar si un producto está permitido
@@ -81,180 +177,171 @@ function App() {
 
   // Función para filtrar productos por categoría comercial
   const filtrarPorCategoria = (product) => {
+    if (selectedCategoryId === "todos") return esProductoPermitido(product);
+
+    const categoria = CATEGORIA_MAPPING[selectedCategoryId];
+    if (!categoria) return false;
+
     const nombreDepartamento = product.departamento?.nombre?.toLowerCase();
-    return categoriaSeleccionada.departamentos.includes(nombreDepartamento);
+    return categoria.departamentos.includes(nombreDepartamento);
   };
 
-  // FILTRO ESTRICTO FINAL
-  const filteredProducts = products.filter((product) => {
-    // 1. Primero: SOLO productos permitidos
-    if (!esProductoPermitido(product)) return false;
+  // Filtrar productos
+  const productosFiltrados = useMemo(() => {
+    let filtered = products.filter(filtrarPorCategoria);
 
-    // 2. Segundo: Filtrar por búsqueda
-    const matchesSearch =
-      searchTerm === "" ||
-      product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.categoria &&
-        product.categoria.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(
+        (product) =>
+          product.nombre?.toLowerCase().includes(searchLower) ||
+          product.sku?.toLowerCase().includes(searchLower),
+      );
+    }
 
-    // 3. Tercero: Filtrar por categoría comercial
-    const matchesCategoria = filtrarPorCategoria(product);
-
-    return matchesSearch && matchesCategoria;
-  });
-
-  const handleProceedToCheckout = () => {
-    setIsCartOpen(false);
-    setIsCheckoutOpen(true);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#0033A0] border-t-transparent mx-auto mb-4"></div>
-          <p className="text-[#121212] font-medium">Cargando productos...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
-        <div className="text-center max-w-md p-6 bg-white rounded-2xl shadow-lg">
-          <div className="text-red-500 mb-4">
-            <svg
-              className="h-16 w-16 mx-auto"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-[#121212] mb-2">
-            Error de Conexión
-          </h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => setDataRefreshKey((prev) => prev + 1)}
-            className="px-6 py-2 bg-[#0033A0] text-white rounded-full font-semibold hover:bg-[#001A54] transition-colors"
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (showAdmin) {
-    return (
-      <div className="min-h-screen">
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
-            <h1 className="text-xl font-black text-[#121212]">
-              <span className="text-[#0033A0]">TZOMP</span>
-              <span className="text-[#D4AF37]">COMER</span>
-              <span className="text-sm font-medium text-gray-400 ml-2">
-                | ADMIN
-              </span>
-            </h1>
-            <button
-              onClick={() => setShowAdmin(false)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-sm font-semibold text-gray-700 transition-colors"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
-              Volver a la tienda
-            </button>
-          </div>
-        </div>
-        <AdminPanel onImportComplete={handleImportComplete} />
-      </div>
-    );
-  }
+    return filtered;
+  }, [products, selectedCategoryId, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-[#F6F6F6]">
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8 flex items-center justify-end">
-          <button
-            onClick={() => setShowAdmin(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-600 transition-colors"
-          >
-            <svg
-              className="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            Admin
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
       <Header
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         isCartOpen={isCartOpen}
         onToggleCart={() => setIsCartOpen(!isCartOpen)}
-        onProceedToCheckout={handleProceedToCheckout}
+        onProceedToCheckout={() => setIsCheckoutOpen(true)}
       />
-      <div className="pt-0">
-        <DepartmentNav
-          selectedCategoryId={selectedCategoryId}
-          onSelectCategory={setSelectedCategoryId}
-        />
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-black text-[#121212]">
-                {categoriaSeleccionada.nombre}
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {filteredProducts.length}{" "}
-                {filteredProducts.length === 1 ? "producto" : "productos"}{" "}
-                disponibles
-              </p>
-            </div>
-            <div className="flex gap-2">
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero solo cuando está en la página principal */}
+        {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
+          <Hero onExplore={() => handleCategoryChange("desechables-envases")} />
+        )}
+
+        <div className="mb-8">
+          <DepartmentNav
+            selectedCategoryId={selectedCategoryId}
+            onCategoryChange={handleCategoryChange}
+          />
+        </div>
+
+        {/* Título principal */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-black text-[#121212]">
+              {familiaSeleccionada
+                ? familiaSeleccionada.name
+                : categoriaSeleccionada?.nombre || "Todos los productos"}
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {familiaSeleccionada
+                ? `${productosFiltrados.length} productos disponibles en esta familia`
+                : `${productosFiltrados.length} productos disponibles`}
+            </p>
+          </div>
+          {isAdminMode && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-red-600 font-semibold bg-red-50 px-3 py-1 rounded-full">
+                Modo Administrador
+              </span>
               <button
-                onClick={handleImportComplete}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#0033A0] hover:bg-[#001A54] text-white text-sm font-semibold transition-colors"
+                onClick={() => setIsAdminMode(false)}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Salir
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Product Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Cargando productos...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-20">
+            <p className="text-red-600 text-lg mb-4">{error}</p>
+            <button
+              onClick={fetchData}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : (
+          <ProductGrid
+            products={productosFiltrados}
+            selectedCategoryId={selectedCategoryId}
+            subcategoriaSeleccionada={subcategoriaSeleccionada}
+            onSelectFamily={setSubcategoriaSeleccionada}
+            isAdminMode={isAdminMode}
+            onDeleteProduct={handleDeleteProduct}
+            onUpdateProduct={handleUpdateProduct}
+            onSaveProduct={handleSaveProduct}
+            departments={departments}
+            onSelectCategory={handleCategoryChange}
+          />
+        )}
+
+        {/* Locations solo cuando está en la página principal */}
+        {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
+          <div className="mt-16">
+            <Locations />
+          </div>
+        )}
+      </main>
+
+      <Footer onAdminClick={handleAdminClick} />
+
+      {/* Botón flotante de Admin (solo visible en modo admin) */}
+      {isAdminMode && (
+        <button
+          onClick={() => setShowAdminPanel(true)}
+          className="fixed bottom-24 right-6 w-16 h-16 bg-gradient-to-br from-[#0033A0] to-[#D4AF37] rounded-full shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-all z-50 group"
+        >
+          <svg
+            className="w-8 h-8"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37c1.724 1.724 0 002.572-1.066z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+          <span className="absolute right-full mr-3 bg-gray-900 text-white text-xs font-semibold py-2 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Panel de Control
+          </span>
+        </button>
+      )}
+
+      {/* Modal de AdminPanel */}
+      {showAdminPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-6xl max-h-[90vh] overflow-auto bg-gray-50 rounded-2xl shadow-2xl">
+            <div className="sticky top-0 bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center z-10">
+              <h2 className="text-xl font-black text-[#121212]">
+                Panel de Administración
+              </h2>
+              <button
+                onClick={() => setShowAdminPanel(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors"
               >
                 <svg
-                  className="h-4 w-4"
+                  className="w-6 h-6 text-gray-700"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -263,19 +350,23 @@ function App() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
-                Refrescar
               </button>
             </div>
+            <AdminPanel onImportComplete={handleImportComplete} />
           </div>
-          <ProductGrid products={filteredProducts} />
-        </main>
-      </div>
+        </div>
+      )}
+
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
+        onCheckoutComplete={() => {
+          clearCart();
+          setIsCheckoutOpen(false);
+        }}
       />
     </div>
   );

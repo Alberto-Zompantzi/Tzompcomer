@@ -44,4 +44,8 @@ public class Producto {
     @Column(nullable = false)
     @Builder.Default
     private Boolean disponible = true;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean activo = true;
 }

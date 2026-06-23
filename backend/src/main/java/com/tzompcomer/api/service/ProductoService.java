@@ -18,7 +18,7 @@ public class ProductoService {
     private final ProductoRepository productoRepository;
 
     public List<Producto> findAll() {
-        return productoRepository.findAll();
+        return productoRepository.findByActivoTrue();
     }
 
     public Page<Producto> search(Long departamentoId, String searchTerm, Pageable pageable) {
@@ -36,6 +36,14 @@ public class ProductoService {
     @Transactional
     public Producto save(Producto producto) {
         return productoRepository.save(producto);
+    }
+
+    @Transactional
+    public void softDeleteById(Long id) {
+        productoRepository.findById(id).ifPresent(producto -> {
+            producto.setActivo(false);
+            productoRepository.save(producto);
+        });
     }
 
     @Transactional

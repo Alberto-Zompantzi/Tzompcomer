@@ -62,8 +62,12 @@ public class ProductoController {
 
     @DeleteMapping("/productos/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        productoService.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return productoService.findById(id)
+                .map(existing -> {
+                    productoService.softDeleteById(id);
+                    return ResponseEntity.noContent().<Void>build();
+                })
+                .orElse(ResponseEntity.notFound().<Void>build());
     }
 
     @PostMapping("/admin/upload-excel")

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -15,7 +16,10 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     
     Optional<Producto> findBySku(String sku);
 
+    List<Producto> findByActivoTrue();
+
     @Query("SELECT p FROM Producto p WHERE " +
+           "p.activo = true AND " +
            "(:departamentoId IS NULL OR p.departamento.id = :departamentoId) AND " +
            "(:searchTerm IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
     Page<Producto> findByDepartamentoIdAndSearchTerm(
