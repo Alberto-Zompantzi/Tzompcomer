@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
 const AdminPanel = ({ onImportComplete }) => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -19,8 +21,8 @@ const AdminPanel = ({ onImportComplete }) => {
     setCargandoAnalisis(true);
     try {
       const [palabrasRes, negocioRes] = await Promise.all([
-        fetch('http://localhost:8080/api/admin/top-palabras'),
-        fetch('http://localhost:8080/api/admin/top-negocio')
+        fetch(`${API_BASE_URL}/admin/top-palabras`),
+        fetch(`${API_BASE_URL}/admin/top-negocio`)
       ]);
       const palabras = await palabrasRes.json();
       const negocio = await negocioRes.json();
@@ -48,7 +50,7 @@ const AdminPanel = ({ onImportComplete }) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:8080/api/admin/upload-excel', {
+      const response = await fetch(`${API_BASE_URL}/admin/upload-excel`, {
         method: 'POST',
         body: formData
       });

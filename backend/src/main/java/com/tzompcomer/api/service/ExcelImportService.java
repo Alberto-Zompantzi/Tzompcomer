@@ -28,6 +28,11 @@ public class ExcelImportService {
 
     @Transactional
     public Map<String, Object> importExcel(MultipartFile file) throws IOException {
+        return importExcel(file.getInputStream());
+    }
+
+    @Transactional
+    public Map<String, Object> importExcel(InputStream is) throws IOException {
         int totalProcessed = 0;
         int created = 0;
         int updated = 0;
@@ -38,7 +43,7 @@ public class ExcelImportService {
         departamentoRepository.deleteAll();
         log.info("Base de datos limpiada correctamente!");
 
-        try (InputStream is = file.getInputStream(); Workbook workbook = WorkbookFactory.create(is)) {
+        try (Workbook workbook = WorkbookFactory.create(is)) {
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rows = sheet.iterator();
 

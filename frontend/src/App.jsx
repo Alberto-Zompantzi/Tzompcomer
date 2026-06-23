@@ -15,7 +15,8 @@ import Footer from "./components/Footer";
 import AdminPanel from "./components/AdminPanel";
 import useCartStore from "./store/useCartStore";
 
-const API_BASE_URL = "http://localhost:8080/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 const PASSWORD_ADMIN_SECRETA = "TzompAdmin2026!";
 
 // Lista de DEPARTAMENTOS PERMITIDOS (estricta)
@@ -286,14 +287,11 @@ function App() {
             onSelectCategory={handleCategoryChange}
           />
         )}
-
-        {/* Locations solo cuando está en la página principal */}
-        {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
-          <div className="mt-16">
-            <Locations />
-          </div>
-        )}
       </main>
+
+      <div className="mt-16">
+        <Locations />
+      </div>
 
       <Footer onAdminClick={handleAdminClick} />
 
