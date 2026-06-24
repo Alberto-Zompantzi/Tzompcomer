@@ -113,6 +113,12 @@ public class ExcelImportService {
                         departamentoMap.put(departamentoNombre, departamento);
                     }
 
+                    // Columna 8: Imagen URL (opcional)
+                    String imagenUrl = getCellValueAsString(currentRow.getCell(8));
+                    if (imagenUrl == null || imagenUrl.trim().isEmpty()) {
+                        imagenUrl = departamentoNombre;
+                    }
+
                     // Lógica: crear nuevos productos (todo es nuevo porque borramos todo antes!
                     Producto producto = Producto.builder()
                             .sku(sku)
@@ -122,7 +128,7 @@ public class ExcelImportService {
                             .departamento(departamento)
                             .disponible(disponible)
                             .categoria(departamentoNombre)
-                            .imagenUrl(departamentoNombre)
+                            .imagenUrl(imagenUrl)
                             .build();
                     created++;
 
