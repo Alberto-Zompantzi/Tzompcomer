@@ -55,6 +55,7 @@ const ProductCard = ({ product, familyImage, isAdminMode, onDeleteProduct, onUpd
   const handleSave = async () => {
     try {
       await onSaveProduct(product.id, {
+        ...product, // Incluye TODOS los datos existentes del producto
         nombre: formData.nombre,
         precio: parseFloat(formData.precio),
         imagenUrl: formData.imagenUrl.trim()
