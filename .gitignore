@@ -1,147 +1,46 @@
-# ================================================
-# TZOMPCOMER - Archivo .gitignore Unificado
-# ================================================
-# Este archivo evita que se suban archivos no necesarios al repositorio
+# Archivos de desarrollo personal y guías
+EJECUTAR_AHORA.md
+EJECUTAR_BACKEND.bat
+BACKEND_TROUBLESHOOTING.md
+GUIA_DE_PERSONALIZACION.md
+EJEMPLO_TIENDA_ABARROTES.md
+SOLUCION_JAVA_21.md
+REFERENCIA_RAPIDA.md
 
-# ================================================
-# 1. ARCHIVOS DE CONFIGURACIÓN LOCAL (NO SUBIR)
-# ================================================
-# Archivos con credenciales, contraseñas o configuraciones específicas del entorno
-*.env
-*.env.local
-*.env.development.local
-*.env.test.local
-*.env.production.local
-application-local.properties
-application-dev.properties
-application-prod.properties
+# Backend - Maven
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
 
-# ================================================
-# 2. BACKEND - SPRING BOOT / MAVEN / JAVA
-# ================================================
-# Compilados
-target/
-*.class
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
+# Frontend - Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
 
-# Cachés de Maven
-.mvn/
-mvnw
-mvnw.cmd
+# Entornos y configuraciones locales
+.env
+.env.local
+.env.*.local
+backend/src/main/resources/application-local.properties
+backend/src/main/resources/application-dev.properties
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
 
 # Logs
-logs/
 *.log
+logs/
 
-# Archivos de Spring Boot
-spring-boot-*.log
-
-# ================================================
-# 3. FRONTEND - REACT / VITE / NODE.JS
-# ================================================
-# Dependencias (muy pesadas - instalar localmente)
-node_modules/
-
-# Builds de producción
-dist/
-build/
-.vite/
-
-# Cachés
-.cache/
-.parcel-cache/
-.eslintcache
-.stylelintcache
-
-# ================================================
-# 4. BASE DE DATOS
-# ================================================
-# Archivos de base de datos local
-*.db
-*.sqlite
-*.sqlite3
-*.h2.db
-*.mv.db
-
-# ================================================
-# 5. IDE - INTELLIJ IDEA / ECLIPSE / VS CODE
-# ================================================
-# IntelliJ IDEA
-.idea/
-*.iws
-*.iml
-*.ipr
-
-# Eclipse
-.classpath
-.project
-.settings/
-bin/
-
-# VS Code
-.vscode/
-!.vscode/extensions.json
-!.vscode/settings.json
-
-# NetBeans
-nbproject/
-build/
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
-
-# ================================================
-# 6. SISTEMA OPERATIVO
-# ================================================
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-.nfs*
-
-# ================================================
-# 7. OTROS ARCHIVOS
-# ================================================
-# Cachés temporales
-tmp/
-temp/
+# Archivos temporales
 *.tmp
-*.bak
+*.temp
 *.swp
-*~.nib
-
-# Archivos de editor
-*.sublime-project
-*.sublime-workspace
-*.vs
-
-# Código de respaldo
-*.orig
-*.rej
-
-# ================================================
-# NOTAS IMPORTANTES
-# ================================================
-# 1. NO SUBAS: node_modules/, target/, .idea/, .env
-# 2. Cuando instales dependencias, ejecuta `npm install` o `mvn install` localmente
-# 3. Si necesitas compartir una configuración base, crea un .env.example o application.properties.example
+*.swo
+*~
