@@ -34,6 +34,7 @@ public class Producto {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "departamento_id")
+    @Deprecated
     private Departamento departamento;
 
     private String categoria;
@@ -48,4 +49,8 @@ public class Producto {
     @Column(nullable = false)
     @Builder.Default
     private Boolean activo = true;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "subcategoria_id")
+    private Subcategoria subcategoria;
 }

@@ -28,6 +28,11 @@ public class ProductoService {
         return productoRepository.findByDepartamentoIdAndSearchTerm(departamentoId, searchTerm, pageable);
     }
 
+    @Cacheable(value = "productosCache", key = "'subcategoria-' + #subcategoriaId + '-' + #searchTerm + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public Page<Producto> searchBySubcategoria(Long subcategoriaId, String searchTerm, Pageable pageable) {
+        return productoRepository.findBySubcategoriaIdAndSearchTerm(subcategoriaId, searchTerm, pageable);
+    }
+
     public Optional<Producto> findById(Long id) {
         return productoRepository.findById(id);
     }

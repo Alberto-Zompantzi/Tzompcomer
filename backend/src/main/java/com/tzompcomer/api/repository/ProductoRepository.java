@@ -26,4 +26,13 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             @Param("departamentoId") Long departamentoId, 
             @Param("searchTerm") String searchTerm, 
             Pageable pageable);
+
+    @Query("SELECT p FROM Producto p WHERE " +
+           "p.activo = true AND " +
+           "(:subcategoriaId IS NULL OR p.subcategoria.id = :subcategoriaId) AND " +
+           "(:searchTerm IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<Producto> findBySubcategoriaIdAndSearchTerm(
+            @Param("subcategoriaId") Long subcategoriaId, 
+            @Param("searchTerm") String searchTerm, 
+            Pageable pageable);
 }

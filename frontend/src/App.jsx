@@ -13,6 +13,7 @@ import Hero from "./components/Hero";
 import Locations from "./components/Locations";
 import Footer from "./components/Footer";
 import AdminPanel from "./components/AdminPanel";
+import StarProductsBanner from "./components/StarProductsBanner";
 import useCartStore from "./store/useCartStore";
 
 const API_BASE_URL =
@@ -217,6 +218,11 @@ function App() {
         {/* Hero solo cuando está en la página principal */}
         {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
           <Hero onExplore={() => handleCategoryChange("desechables-envases")} />
+        )}
+
+        {/* Banner de Productos Estrella (solo en página principal) */}
+        {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
+          <StarProductsBanner />
         )}
 
         <div className="mb-8">

@@ -34,8 +34,12 @@ public class ProductoController {
     @GetMapping("/productos")
     public ResponseEntity<Page<Producto>> search(
             @RequestParam(required = false) Long departamentoId,
+            @RequestParam(required = false) Long subcategoriaId,
             @RequestParam(required = false) String searchTerm,
             @PageableDefault(size = 30) Pageable pageable) {
+        if (subcategoriaId != null) {
+            return ResponseEntity.ok(productoService.searchBySubcategoria(subcategoriaId, searchTerm, pageable));
+        }
         return ResponseEntity.ok(productoService.search(departamentoId, searchTerm, pageable));
     }
 
