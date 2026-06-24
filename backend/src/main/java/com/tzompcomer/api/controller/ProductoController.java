@@ -4,6 +4,7 @@ import com.tzompcomer.api.entity.Producto;
 import com.tzompcomer.api.service.ExcelImportService;
 import com.tzompcomer.api.service.ProductoService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -34,8 +35,17 @@ public class ProductoController {
     public ResponseEntity<Page<Producto>> search(
             @RequestParam(required = false) Long departamentoId,
             @RequestParam(required = false) String searchTerm,
-            @PageableDefault(size = 10) Pageable pageable) {
+            @PageableDefault(size = 30) Pageable pageable) {
         return ResponseEntity.ok(productoService.search(departamentoId, searchTerm, pageable));
+    }
+
+    @DeleteMapping("/admin/cache")
+    public ResponseEntity<Map<String, String>> clearCache() {
+        productoService.clearCache();
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("message", "Caché limpiada exitosamente");
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/productos/{id}")

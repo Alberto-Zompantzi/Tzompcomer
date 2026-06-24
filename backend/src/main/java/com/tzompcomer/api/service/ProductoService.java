@@ -3,6 +3,8 @@ package com.tzompcomer.api.service;
 import com.tzompcomer.api.entity.Producto;
 import com.tzompcomer.api.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class ProductoService {
         return productoRepository.findByActivoTrue();
     }
 
+    @Cacheable(value = "productosCache", key = "#departamentoId + '-' + #searchTerm + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Producto> search(Long departamentoId, String searchTerm, Pageable pageable) {
         return productoRepository.findByDepartamentoIdAndSearchTerm(departamentoId, searchTerm, pageable);
     }
@@ -49,5 +52,10 @@ public class ProductoService {
     @Transactional
     public void deleteById(Long id) {
         productoRepository.deleteById(id);
+    }
+
+    @CacheEvict(value = "productosCache", allEntries = true)
+    public void clearCache() {
+        // Este método limpia toda la caché de productos
     }
 }
