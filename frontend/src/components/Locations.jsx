@@ -101,10 +101,10 @@ const Locations = () => {
               height="100%"
               frameBorder="0"
               style={{ border: 0 }}
-              src="https://share.google/r4bVuOL5Xf5FzLN39"
+              src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3073.036196302603!2d-97.35687169414176!3d19.818061025547227!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85daeb0031b4b8d7%3A0xecc84ee4452c2392!2sTzompcomer!5e0!3m2!1sen!2sus!4v1782343685353!5m2!1sen!2sus"
               allowFullScreen
               loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
+              referrerPolicy="strict-origin-when-cross-origin"
             ></iframe>
           </div>
         </div>
