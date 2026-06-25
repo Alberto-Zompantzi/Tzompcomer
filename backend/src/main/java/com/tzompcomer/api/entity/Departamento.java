@@ -1,5 +1,6 @@
 package com.tzompcomer.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,15 +17,13 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Departamento {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String nombre;
 
-    @Column(name = "identificador_icono")
     private String identificadorIcono;
 
     @Column(nullable = false)
@@ -33,5 +32,6 @@ public class Departamento {
 
     @OneToMany(mappedBy = "departamento", cascade = CascadeType.ALL, orphanRemoval = false)
     @Builder.Default
+    @JsonIgnoreProperties("departamento")
     private List<Categoria> categorias = new ArrayList<>();
 }

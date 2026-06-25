@@ -1,5 +1,6 @@
 package com.tzompcomer.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,9 +34,11 @@ public class Categoria {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "departamento_id")
+    @JsonIgnoreProperties("categorias")
     private Departamento departamento;
 
     @OneToMany(mappedBy = "categoriaEntity", cascade = CascadeType.ALL, orphanRemoval = false)
     @Builder.Default
+    @JsonIgnoreProperties("categoriaEntity")
     private List<Producto> productos = new ArrayList<>();
 }
