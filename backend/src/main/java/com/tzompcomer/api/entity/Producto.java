@@ -52,7 +52,7 @@ public class Producto {
     private Boolean activo = true;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "categoria_id")
+    @JoinColumn(name = "categoria_entity_id") // Nombre de columna que usamos en la migración manual
     private Categoria categoriaEntity;
 
     @ManyToOne(fetch = FetchType.EAGER)

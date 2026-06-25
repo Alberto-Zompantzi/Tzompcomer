@@ -35,7 +35,7 @@ public class Categoria {
     @JoinColumn(name = "departamento_id")
     private Departamento departamento;
 
-    @OneToMany(mappedBy = "categoria", cascade = CascadeType.ALL, orphanRemoval = false)
+    @OneToMany(mappedBy = "categoriaEntity", cascade = CascadeType.ALL, orphanRemoval = false)
     @Builder.Default
     private List<Producto> productos = new ArrayList<>();
 }
