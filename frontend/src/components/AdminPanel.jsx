@@ -14,11 +14,12 @@ const AdminPanel = ({ onImportComplete }) => {
   const [topPalabras, setTopPalabras] = useState([]);
   const [topNegocio, setTopNegocio] = useState([]);
   const [cargandoAnalisis, setCargandoAnalisis] = useState(false);
+  const [migrando, setMigrando] = useState(false);
 
-  // Estados para Departamentos
-  const [departamentos, setDepartamentos] = useState([]);
-  const [editingDepartamento, setEditingDepartamento] = useState(null);
-  const [departamentoForm, setDepartamentoForm] = useState({ nombre: '', identificadorIcono: '', activo: true });
+  // Estados para Macrocategorías (anteriormente Departamentos)
+  const [macrocategorias, setMacrocategorias] = useState([]);
+  const [editingMacrocategoria, setEditingMacrocategoria] = useState(null);
+  const [macrocategoriaForm, setMacrocategoriaForm] = useState({ nombre: '', identificadorIcono: '', activo: true });
 
   // Estados para Categorías
   const [categorias, setCategorias] = useState([]);
@@ -99,46 +100,60 @@ const AdminPanel = ({ onImportComplete }) => {
     }
   };
 
-  // --- Funciones para Departamentos ---
-  const fetchDepartamentos = async () => {
+  const handleMigrarProductos = async () => {
+    setMigrando(true);
+    try {
+      await fetch(`${API_BASE_URL}/admin/migrar-productos`, { method: 'POST' });
+      alert('¡Migración completada exitosamente!');
+      if (onImportComplete) onImportComplete();
+    } catch (err) {
+      console.error(err);
+      alert('Error al ejecutar la migración');
+    } finally {
+      setMigrando(false);
+    }
+  };
+
+  // --- Funciones para Macrocategorías ---
+  const fetchMacrocategorias = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/departamentos`);
       const data = await res.json();
-      setDepartamentos(data);
+      setMacrocategorias(data);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleSaveDepartamento = async (e) => {
+  const handleSaveMacrocategoria = async (e) => {
     e.preventDefault();
     try {
-      if (editingDepartamento) {
-        await fetch(`${API_BASE_URL}/departamentos/${editingDepartamento.id}`, {
+      if (editingMacrocategoria) {
+        await fetch(`${API_BASE_URL}/departamentos/${editingMacrocategoria.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(departamentoForm)
+          body: JSON.stringify(macrocategoriaForm)
         });
       } else {
         await fetch(`${API_BASE_URL}/departamentos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(departamentoForm)
+          body: JSON.stringify(macrocategoriaForm)
         });
       }
-      fetchDepartamentos();
-      setEditingDepartamento(null);
-      setDepartamentoForm({ nombre: '', identificadorIcono: '', activo: true });
+      fetchMacrocategorias();
+      setEditingMacrocategoria(null);
+      setMacrocategoriaForm({ nombre: '', identificadorIcono: '', activo: true });
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleDeleteDepartamento = async (id) => {
-    if (confirm('¿Seguro que quieres eliminar este departamento?')) {
+  const handleDeleteMacrocategoria = async (id) => {
+    if (confirm('¿Seguro que quieres eliminar esta macrocategoría?')) {
       try {
         await fetch(`${API_BASE_URL}/departamentos/${id}`, { method: 'DELETE' });
-        fetchDepartamentos();
+        fetchMacrocategorias();
       } catch (err) {
         console.error(err);
       }
@@ -177,7 +192,7 @@ const AdminPanel = ({ onImportComplete }) => {
         });
       }
       fetchCategorias();
-      fetchDepartamentos();
+      fetchMacrocategorias();
       setEditingCategoria(null);
       setCategoriaForm({ nombre: '', imagenUrl: '', activo: true, departamentoId: '' });
     } catch (err) {
@@ -346,9 +361,9 @@ const AdminPanel = ({ onImportComplete }) => {
   useEffect(() => {
     if (activeTab === 'categorias' || activeTab === 'almacen') {
       fetchCategorias();
-      fetchDepartamentos();
+      fetchMacrocategorias();
     }
-    if (activeTab === 'departamentos') fetchDepartamentos();
+    if (activeTab === 'macrocategorias') fetchMacrocategorias();
     if (activeTab === 'subcategorias') {
       fetchSubcategorias();
       fetchCategorias();
@@ -382,7 +397,7 @@ const AdminPanel = ({ onImportComplete }) => {
           <div className="flex flex-wrap border-b border-gray-200">
             {[
               { id: 'productos', label: '📦 Importar' },
-              { id: 'departamentos', label: '🏢 Departamentos' },
+              { id: 'macrocategorias', label: '🏢 Macrocategorías' },
               { id: 'categorias', label: '📁 Categorías' },
               { id: 'almacen', label: '🏪 Almacén' },
               { id: 'subcategorias', label: '📂 Subcategorías' },
@@ -451,6 +466,15 @@ const AdminPanel = ({ onImportComplete }) => {
                   </button>
                 </form>
 
+                {/* Botón de Migración */}
+                <button
+                  onClick={handleMigrarProductos}
+                  disabled={migrando}
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#B8960C] px-8 py-4 text-base font-black text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {migrando ? '⏳ Migrando productos...' : '🚀 Ejecutar Migración de Catálogo'}
+                </button>
+
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
                     <p className="text-sm font-semibold text-red-600">{error}</p>
@@ -504,60 +528,62 @@ const AdminPanel = ({ onImportComplete }) => {
               </div>
             )}
 
-            {/* --- Tab: Departamentos --- */}
-            {activeTab === 'departamentos' && (
+            {/* --- Tab: Macrocategorías --- */}
+            {activeTab === 'macrocategorias' && (
               <div className="space-y-6">
-                <form onSubmit={handleSaveDepartamento} className="bg-gray-50 p-6 rounded-2xl space-y-4">
-                  <h3 className="font-black text-gray-900 text-lg">{editingDepartamento ? 'Editar Departamento' : 'Agregar Departamento'}</h3>
+                <h2 className="text-2xl font-black text-gray-900">Gestión de Macrocategorías (Nivel Superior)</h2>
+                
+                <form onSubmit={handleSaveMacrocategoria} className="bg-gray-50 p-6 rounded-2xl space-y-4">
+                  <h3 className="font-black text-gray-900 text-lg">{editingMacrocategoria ? 'Editar Macrocategoría' : 'Agregar Macrocategoría'}</h3>
                   <input
                     type="text"
-                    placeholder="Nombre del departamento"
-                    value={departamentoForm.nombre}
-                    onChange={(e) => setDepartamentoForm({ ...departamentoForm, nombre: e.target.value })}
+                    placeholder="Nombre de la macrocategoría"
+                    value={macrocategoriaForm.nombre}
+                    onChange={(e) => setMacrocategoriaForm({ ...macrocategoriaForm, nombre: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
                     required
                   />
                   <input
                     type="text"
                     placeholder="Identificador de ícono"
-                    value={departamentoForm.identificadorIcono}
-                    onChange={(e) => setDepartamentoForm({ ...departamentoForm, identificadorIcono: e.target.value })}
+                    value={macrocategoriaForm.identificadorIcono}
+                    onChange={(e) => setMacrocategoriaForm({ ...macrocategoriaForm, identificadorIcono: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
                   />
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={departamentoForm.activo}
-                      onChange={(e) => setDepartamentoForm({ ...departamentoForm, activo: e.target.checked })}
+                      checked={macrocategoriaForm.activo}
+                      onChange={(e) => setMacrocategoriaForm({ ...macrocategoriaForm, activo: e.target.checked })}
                       className="w-5 h-5 rounded"
                     />
                     <span className="font-semibold text-gray-700">Activo (visible en la tienda)</span>
                   </label>
                   <div className="flex gap-3">
                     <button type="submit" className="flex-1 bg-[#0033A0] text-white py-3 rounded-xl font-bold">Guardar</button>
-                    {editingDepartamento && (
-                      <button type="button" onClick={() => { setEditingDepartamento(null); setDepartamentoForm({ nombre: '', identificadorIcono: '', activo: true }); }} className="px-6 py-3 border border-gray-300 rounded-xl font-semibold">Cancelar</button>
+                    {editingMacrocategoria && (
+                      <button type="button" onClick={() => { setEditingMacrocategoria(null); setMacrocategoriaForm({ nombre: '', identificadorIcono: '', activo: true }); }} className="px-6 py-3 border border-gray-300 rounded-xl font-semibold">Cancelar</button>
                     )}
                   </div>
                 </form>
 
                 <div className="grid gap-4">
-                  {departamentos.map((depto) => (
-                    <div key={depto.id} className="flex items-center justify-between p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+                  {macrocategorias.map((macro) => (
+                    <div key={macro.id} className="flex items-center justify-between p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
                       <div className="flex items-center gap-4">
                         <div className="w-16 h-16 bg-gradient-to-br from-[#0033A0]/10 to-[#D4AF37]/10 rounded-xl flex items-center justify-center">
-                          <span className="text-[#0033A0] font-black text-xl">{depto.identificadorIcono || '📂'}</span>
+                          <span className="text-[#0033A0] font-black text-xl">{macro.identificadorIcono || '📂'}</span>
                         </div>
                         <div>
-                          <h4 className="font-black text-gray-900 text-lg">{depto.nombre}</h4>
-                          <span className={`text-xs px-2 py-1 rounded-full font-semibold ${depto.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {depto.activo ? 'Activo' : 'Inactivo'}
+                          <h4 className="font-black text-gray-900 text-lg">{macro.nombre}</h4>
+                          <span className={`text-xs px-2 py-1 rounded-full font-semibold ${macro.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {macro.activo ? 'Activo' : 'Inactivo'}
                           </span>
                         </div>
                       </div>
                       <div className="flex gap-3">
-                        <button onClick={() => { setEditingDepartamento(depto); setDepartamentoForm({ nombre: depto.nombre, identificadorIcono: depto.identificadorIcono || '', activo: depto.activo }); }} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold">Editar</button>
-                        <button onClick={() => handleDeleteDepartamento(depto.id)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold">Eliminar</button>
+                        <button onClick={() => { setEditingMacrocategoria(macro); setMacrocategoriaForm({ nombre: macro.nombre, identificadorIcono: macro.identificadorIcono || '', activo: macro.activo }); }} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold">Editar</button>
+                        <button onClick={() => handleDeleteMacrocategoria(macro.id)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold">Eliminar</button>
                       </div>
                     </div>
                   ))}
@@ -568,16 +594,19 @@ const AdminPanel = ({ onImportComplete }) => {
             {/* --- Tab: Categorías --- */}
             {activeTab === 'categorias' && (
               <div className="space-y-6">
+                <h2 className="text-2xl font-black text-gray-900">Gestión de Categorías (Nivel Medio)</h2>
+                
                 <form onSubmit={handleSaveCategoria} className="bg-gray-50 p-6 rounded-2xl space-y-4">
                   <h3 className="font-black text-gray-900 text-lg">{editingCategoria ? 'Editar Categoría' : 'Agregar Categoría'}</h3>
                   <select
                     value={categoriaForm.departamentoId}
                     onChange={(e) => setCategoriaForm({ ...categoriaForm, departamentoId: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
+                    required
                   >
-                    <option value="">Selecciona un departamento</option>
-                    {departamentos.map((depto) => (
-                      <option key={depto.id} value={depto.id}>{depto.nombre}</option>
+                    <option value="">Selecciona la Macrocategoría a la que pertenece</option>
+                    {macrocategorias.map((macro) => (
+                      <option key={macro.id} value={macro.id}>{macro.nombre}</option>
                     ))}
                   </select>
                   <input
@@ -622,7 +651,7 @@ const AdminPanel = ({ onImportComplete }) => {
                         <div>
                           <h4 className="font-black text-gray-900 text-lg">{categoria.nombre}</h4>
                           <p className="text-sm text-gray-500">
-                            {categoria.departamento ? `Departamento: ${categoria.departamento.nombre}` : 'Sin departamento'}
+                            {categoria.departamento ? `Macrocategoría: ${categoria.departamento.nombre}` : 'Sin macrocategoría'}
                           </p>
                           <span className={`text-xs px-2 py-1 rounded-full font-semibold mt-1 inline-block ${categoria.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             {categoria.activo ? 'Activo' : 'Inactivo'}
@@ -650,6 +679,8 @@ const AdminPanel = ({ onImportComplete }) => {
             {/* --- Tab: Almacén --- */}
             {activeTab === 'almacen' && (
               <div className="space-y-6">
+                <h2 className="text-2xl font-black text-gray-900">Almacén de Productos</h2>
+                
                 {/* Barra de herramientas */}
                 <div className="bg-gray-50 p-6 rounded-2xl space-y-4">
                   <div className="flex flex-wrap gap-4 items-center">
@@ -732,6 +763,8 @@ const AdminPanel = ({ onImportComplete }) => {
             {/* --- Tab: Subcategorías --- */}
             {activeTab === 'subcategorias' && (
               <div className="space-y-6">
+                <h2 className="text-2xl font-black text-gray-900">Gestión de Subcategorías (Nivel Inferior)</h2>
+                
                 <form onSubmit={handleSaveSubcategoria} className="bg-gray-50 p-6 rounded-2xl space-y-4">
                   <h3 className="font-black text-gray-900 text-lg">{editingSubcategoria ? 'Editar Subcategoría' : 'Agregar Subcategoría'}</h3>
                   <select
@@ -793,6 +826,8 @@ const AdminPanel = ({ onImportComplete }) => {
             {/* --- Tab: Banners --- */}
             {activeTab === 'banners' && (
               <div className="space-y-6">
+                <h2 className="text-2xl font-black text-gray-900">Gestión de Banners Destacados</h2>
+                
                 <form onSubmit={handleAddBanner} className="bg-gray-50 p-6 rounded-2xl space-y-4">
                   <h3 className="font-black text-gray-900 text-lg">Agregar Banner Destacado</h3>
                   <input

@@ -177,13 +177,21 @@ function App() {
       );
       if (categoriaComercial) {
         filtered = filtered.filter((product) => {
-          if (!product.categoriaEntity?.departamento?.nombre) {
-            return false;
+          // Primero intentar usar la relación nueva (categoriaEntity.departamento)
+          if (product.categoriaEntity?.departamento?.nombre) {
+            const nombreMacro = product.categoriaEntity.departamento.nombre.toLowerCase();
+            return categoriaComercial.departamentos.some((dept) => 
+              nombreMacro.includes(dept.toLowerCase())
+            );
           }
-          const nombreMacro = product.categoriaEntity.departamento.nombre.toLowerCase();
-          return categoriaComercial.departamentos.some((dept) => 
-            nombreMacro.includes(dept.toLowerCase())
-          );
+          // Si no existe la relación nueva, usar la relación antigua (departamento)
+          if (product.departamento?.nombre) {
+            const nombreDept = product.departamento.nombre.toLowerCase();
+            return categoriaComercial.departamentos.some((dept) => 
+              nombreDept.includes(dept.toLowerCase())
+            );
+          }
+          return false;
         });
       }
     }

@@ -1,5 +1,6 @@
 package com.tzompcomer.api.controller;
 
+import com.tzompcomer.api.config.DatabaseMigration;
 import com.tzompcomer.api.entity.Producto;
 import com.tzompcomer.api.service.ExcelImportService;
 import com.tzompcomer.api.service.ProductoService;
@@ -25,6 +26,7 @@ public class ProductoController {
 
     private final ProductoService productoService;
     private final ExcelImportService excelImportService;
+    private final DatabaseMigration databaseMigration;
 
     @GetMapping("/productos/all")
     public ResponseEntity<List<Producto>> getAll() {
@@ -59,6 +61,15 @@ public class ProductoController {
         Map<String, String> response = new HashMap<>();
         response.put("status", "success");
         response.put("message", "Caché limpiada exitosamente");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/admin/migrar-productos")
+    public ResponseEntity<Map<String, String>> migrarProductos() {
+        databaseMigration.migrarProductosANuevaRelacion();
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("message", "Migración de productos completada");
         return ResponseEntity.ok(response);
     }
 
