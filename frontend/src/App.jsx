@@ -24,6 +24,7 @@ function App() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [departments, setDepartments] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("todos");
   const [subcategoriaSeleccionada, setSubcategoriaSeleccionada] =
@@ -112,19 +113,22 @@ function App() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [departmentsRes, productsRes] = await Promise.all([
+      const [departmentsRes, categoriesRes, productsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/departamentos/active`),
+        fetch(`${API_BASE_URL}/categorias/active`),
         fetch(`${API_BASE_URL}/productos/visible`),
       ]);
 
-      if (!departmentsRes.ok || !productsRes.ok) {
+      if (!departmentsRes.ok || !productsRes.ok || !categoriesRes.ok) {
         throw new Error("Error al cargar los datos");
       }
 
       const departmentsData = await departmentsRes.json();
+      const categoriesData = await categoriesRes.json();
       const productsData = await productsRes.json();
 
       setDepartments(departmentsData);
+      setCategories(categoriesData);
       setProducts(productsData);
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -132,6 +136,7 @@ function App() {
         "No se pudieron cargar los datos. Por favor, verifica que el backend esté corriendo.",
       );
       setDepartments([]);
+      setCategories([]);
       setProducts([]);
     } finally {
       setLoading(false);
@@ -161,10 +166,29 @@ function App() {
     [familiasCategorias, subcategoriaSeleccionada],
   );
 
-  // Filtrar productos por término de búsqueda
+  // Filtrar productos por categoría comercial y término de búsqueda
   const productosFiltrados = useMemo(() => {
     let filtered = [...products];
 
+    // Filtrar por categoría comercial
+    if (selectedCategoryId !== "todos") {
+      const categoriaComercial = CATEGORIAS_COMERCIALES.find(
+        (c) => c.id === selectedCategoryId,
+      );
+      if (categoriaComercial) {
+        filtered = filtered.filter((product) => {
+          if (!product.categoriaEntity?.departamento?.nombre) {
+            return false;
+          }
+          const nombreMacro = product.categoriaEntity.departamento.nombre.toLowerCase();
+          return categoriaComercial.departamentos.some((dept) => 
+            nombreMacro.includes(dept.toLowerCase())
+          );
+        });
+      }
+    }
+
+    // Filtrar por término de búsqueda
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
@@ -175,7 +199,7 @@ function App() {
     }
 
     return filtered;
-  }, [products, searchTerm]);
+  }, [products, selectedCategoryId, searchTerm]);
 
   return (
     <div className="min-h-screen bg-gray-50">
