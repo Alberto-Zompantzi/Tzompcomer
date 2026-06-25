@@ -47,6 +47,46 @@ public class ProductoService {
     }
 
     @Transactional
+    public Producto update(Long id, Producto productoActualizado) {
+        return productoRepository.findById(id).map(existing -> {
+            // Actualizar solo campos que vengan con datos
+            if (productoActualizado.getNombre() != null) {
+                existing.setNombre(productoActualizado.getNombre());
+            }
+            if (productoActualizado.getPrecio() != null) {
+                existing.setPrecio(productoActualizado.getPrecio());
+            }
+            if (productoActualizado.getDescripcion() != null) {
+                existing.setDescripcion(productoActualizado.getDescripcion());
+            }
+            if (productoActualizado.getImagenUrl() != null) {
+                existing.setImagenUrl(productoActualizado.getImagenUrl());
+            }
+            if (productoActualizado.getSku() != null) {
+                existing.setSku(productoActualizado.getSku());
+            }
+            if (productoActualizado.getCategoria() != null) {
+                existing.setCategoria(productoActualizado.getCategoria());
+            }
+            if (productoActualizado.getDisponible() != null) {
+                existing.setDisponible(productoActualizado.getDisponible());
+            }
+            if (productoActualizado.getActivo() != null) {
+                existing.setActivo(productoActualizado.getActivo());
+            }
+            // Actualizar departamento solo si viene con datos
+            if (productoActualizado.getDepartamento() != null && productoActualizado.getDepartamento().getId() != null) {
+                existing.setDepartamento(productoActualizado.getDepartamento());
+            }
+            // Actualizar subcategoria solo si viene con datos
+            if (productoActualizado.getSubcategoria() != null && productoActualizado.getSubcategoria().getId() != null) {
+                existing.setSubcategoria(productoActualizado.getSubcategoria());
+            }
+            return productoRepository.save(existing);
+        }).orElse(null);
+    }
+
+    @Transactional
     public void softDeleteById(Long id) {
         productoRepository.findById(id).ifPresent(producto -> {
             producto.setActivo(false);

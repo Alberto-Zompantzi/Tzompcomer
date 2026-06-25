@@ -66,12 +66,11 @@ public class ProductoController {
 
     @PutMapping("/productos/{id}")
     public ResponseEntity<Producto> update(@PathVariable Long id, @RequestBody Producto producto) {
-        return productoService.findById(id)
-                .map(existing -> {
-                    producto.setId(id);
-                    return ResponseEntity.ok(productoService.save(producto));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Producto productoActualizado = productoService.update(id, producto);
+        if (productoActualizado != null) {
+            return ResponseEntity.ok(productoActualizado);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/productos/{id}")

@@ -42,8 +42,8 @@ const ProductCard = ({ product, familyImage, isAdminMode, onDeleteProduct, onUpd
   };
 
   const handleDepartmentChange = (e) => {
-    const newDepartmentName = e.target.value;
-    const newDepartment = departments.find(d => d.nombre === newDepartmentName);
+    const newDepartmentId = parseInt(e.target.value);
+    const newDepartment = departments.find(d => d.id === newDepartmentId);
     if (newDepartment) {
       onUpdateProduct(product.id, {
         ...product,
@@ -162,12 +162,12 @@ const ProductCard = ({ product, familyImage, isAdminMode, onDeleteProduct, onUpd
             <div>
               <label className="text-xs font-semibold text-gray-600 mb-1 block">Mover a:</label>
               <select
-                value={product.departamento?.nombre || ''}
+                value={product.departamento?.id || ''}
                 onChange={handleDepartmentChange}
                 className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 {departments.map(dept => (
-                  <option key={dept.id} value={dept.nombre}>
+                  <option key={dept.id} value={dept.id}>
                     {dept.nombre}
                   </option>
                 ))}
