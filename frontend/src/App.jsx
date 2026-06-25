@@ -173,8 +173,13 @@ function App() {
 
   // Función para verificar si un producto está permitido
   const esProductoPermitido = (product) => {
-    const nombreDepartamento = product.departamento?.nombre?.toLowerCase();
-    return DEPARTAMENTOS_PERMITIDOS.includes(nombreDepartamento);
+    // Si el producto tiene departamento, checkeamos
+    if (product.departamento?.nombre) {
+      const nombreDepartamento = product.departamento.nombre.toLowerCase();
+      return DEPARTAMENTOS_PERMITIDOS.includes(nombreDepartamento);
+    }
+    // Si NO tiene departamento (fallo temporal), lo mostramos igual (seguridad)
+    return true;
   };
 
   // Función para filtrar productos por categoría comercial
@@ -184,8 +189,13 @@ function App() {
     const categoria = CATEGORIA_MAPPING[selectedCategoryId];
     if (!categoria) return false;
 
-    const nombreDepartamento = product.departamento?.nombre?.toLowerCase();
-    return categoria.departamentos.includes(nombreDepartamento);
+    // Si el producto tiene departamento, checkeamos
+    if (product.departamento?.nombre) {
+      const nombreDepartamento = product.departamento.nombre.toLowerCase();
+      return categoria.departamentos.includes(nombreDepartamento);
+    }
+    // Si NO tiene departamento, lo mostramos en "todos" o fallback
+    return selectedCategoryId === "todos";
   };
 
   // Filtrar productos

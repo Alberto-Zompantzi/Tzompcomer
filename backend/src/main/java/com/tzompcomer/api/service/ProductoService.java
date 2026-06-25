@@ -18,6 +18,8 @@ import java.util.Optional;
 public class ProductoService {
 
     private final ProductoRepository productoRepository;
+    private final DepartamentoRepository departamentoRepository;
+    private final SubcategoriaRepository subcategoriaRepository;
 
     public List<Producto> findAll() {
         return productoRepository.findByActivoTrue();
@@ -45,6 +47,8 @@ public class ProductoService {
     public Producto save(Producto producto) {
         return productoRepository.save(producto);
     }
+
+
 
     @Transactional
     public Producto update(Long id, Producto productoActualizado) {
@@ -74,14 +78,15 @@ public class ProductoService {
             if (productoActualizado.getActivo() != null) {
                 existing.setActivo(productoActualizado.getActivo());
             }
-            // Actualizar departamento solo si viene con datos
+            // Actualizar departamento solo si viene con datos - BUSCAR DE LA BD
             if (productoActualizado.getDepartamento() != null && productoActualizado.getDepartamento().getId() != null) {
-                existing.setDepartamento(productoActualizado.getDepartamento());
+                departamentoRepository.findById(productoActualizado.getDepartamento().getId()).ifPresent(existing::setDepartamento);
             }
-            // Actualizar subcategoria solo si viene con datos
+            // Actualizar subcategoria solo si viene con datos - BUSCAR DE LA BD
             if (productoActualizado.getSubcategoria() != null && productoActualizado.getSubcategoria().getId() != null) {
-                existing.setSubcategoria(productoActualizado.getSubcategoria());
+                subcategoriaRepository.findById(productoActualizado.getSubcategoria().getId()).ifPresent(existing::setSubcategoria);
             }
+            // Guardar y retornar
             return productoRepository.save(existing);
         }).orElse(null);
     }
