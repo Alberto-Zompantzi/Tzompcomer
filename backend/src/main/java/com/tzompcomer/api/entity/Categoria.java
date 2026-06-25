@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "categorias")
 @Data
@@ -23,4 +26,16 @@ public class Categoria {
 
     @Column(name = "imagen_url", columnDefinition = "TEXT")
     private String imagenUrl;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean activo = true;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "departamento_id")
+    private Departamento departamento;
+
+    @OneToMany(mappedBy = "categoria", cascade = CascadeType.ALL, orphanRemoval = false)
+    @Builder.Default
+    private List<Producto> productos = new ArrayList<>();
 }

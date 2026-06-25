@@ -20,16 +20,6 @@ const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 const PASSWORD_ADMIN_SECRETA = "TzompAdmin2026!";
 
-// Lista de DEPARTAMENTOS PERMITIDOS (estricta)
-const DEPARTAMENTOS_PERMITIDOS = [
-  "desechable",
-  "ferreteria",
-  "gaviota",
-  "inix",
-  "materia prima",
-  "plastico",
-];
-
 function App() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -123,8 +113,8 @@ function App() {
     try {
       setLoading(true);
       const [departmentsRes, productsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/departamentos`),
-        fetch(`${API_BASE_URL}/productos/all`),
+        fetch(`${API_BASE_URL}/departamentos/active`),
+        fetch(`${API_BASE_URL}/productos/visible`),
       ]);
 
       if (!departmentsRes.ok || !productsRes.ok) {
@@ -171,36 +161,9 @@ function App() {
     [familiasCategorias, subcategoriaSeleccionada],
   );
 
-  // Función para verificar si un producto está permitido
-  const esProductoPermitido = (product) => {
-    // Si el producto tiene departamento, checkeamos
-    if (product.departamento?.nombre) {
-      const nombreDepartamento = product.departamento.nombre.toLowerCase();
-      return DEPARTAMENTOS_PERMITIDOS.includes(nombreDepartamento);
-    }
-    // Si NO tiene departamento (fallo temporal), lo mostramos igual (seguridad)
-    return true;
-  };
-
-  // Función para filtrar productos por categoría comercial
-  const filtrarPorCategoria = (product) => {
-    if (selectedCategoryId === "todos") return esProductoPermitido(product);
-
-    const categoria = CATEGORIA_MAPPING[selectedCategoryId];
-    if (!categoria) return false;
-
-    // Si el producto tiene departamento, checkeamos
-    if (product.departamento?.nombre) {
-      const nombreDepartamento = product.departamento.nombre.toLowerCase();
-      return categoria.departamentos.includes(nombreDepartamento);
-    }
-    // Si NO tiene departamento, lo mostramos en "todos" o fallback
-    return selectedCategoryId === "todos";
-  };
-
-  // Filtrar productos
+  // Filtrar productos por término de búsqueda
   const productosFiltrados = useMemo(() => {
-    let filtered = products.filter(filtrarPorCategoria);
+    let filtered = [...products];
 
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase().trim();
@@ -212,7 +175,7 @@ function App() {
     }
 
     return filtered;
-  }, [products, selectedCategoryId, searchTerm]);
+  }, [products, searchTerm]);
 
   return (
     <div className="min-h-screen bg-gray-50">

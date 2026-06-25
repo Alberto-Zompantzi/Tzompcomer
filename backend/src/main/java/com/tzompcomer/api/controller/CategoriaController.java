@@ -21,6 +21,21 @@ public class CategoriaController {
         return ResponseEntity.ok(categoriaService.findAll());
     }
 
+    @GetMapping("/active")
+    public ResponseEntity<List<Categoria>> getActive() {
+        return ResponseEntity.ok(categoriaService.findActive());
+    }
+
+    @GetMapping("/departamento/{departamentoId}")
+    public ResponseEntity<List<Categoria>> getByDepartamento(@PathVariable Long departamentoId) {
+        return ResponseEntity.ok(categoriaService.findByDepartamento(departamentoId));
+    }
+
+    @GetMapping("/departamento/{departamentoId}/active")
+    public ResponseEntity<List<Categoria>> getActiveByDepartamento(@PathVariable Long departamentoId) {
+        return ResponseEntity.ok(categoriaService.findActiveByDepartamento(departamentoId));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Categoria> getById(@PathVariable Long id) {
         return categoriaService.findById(id)
@@ -35,13 +50,11 @@ public class CategoriaController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Categoria> update(@PathVariable Long id, @RequestBody Categoria categoriaDetails) {
-        return categoriaService.findById(id)
-                .map(categoria -> {
-                    categoria.setNombre(categoriaDetails.getNombre());
-                    categoria.setImagenUrl(categoriaDetails.getImagenUrl());
-                    return ResponseEntity.ok(categoriaService.save(categoria));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Categoria updated = categoriaService.update(id, categoriaDetails);
+        if (updated != null) {
+            return ResponseEntity.ok(updated);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/{id}")

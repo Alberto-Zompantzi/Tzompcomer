@@ -31,6 +31,16 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.findAll());
     }
 
+    @GetMapping("/productos/visible")
+    public ResponseEntity<List<Producto>> getVisible() {
+        return ResponseEntity.ok(productoService.findVisible());
+    }
+
+    @GetMapping("/productos/search-all")
+    public ResponseEntity<List<Producto>> searchAll(@RequestParam(required = false) String searchTerm) {
+        return ResponseEntity.ok(productoService.searchAll(searchTerm));
+    }
+
     @GetMapping("/productos")
     public ResponseEntity<Page<Producto>> search(
             @RequestParam(required = false) Long departamentoId,
@@ -71,6 +81,18 @@ public class ProductoController {
             return ResponseEntity.ok(productoActualizado);
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/productos/assign-categoria")
+    public ResponseEntity<Map<String, String>> assignToCategoria(@RequestBody Map<String, Object> request) {
+        @SuppressWarnings("unchecked")
+        List<Long> productoIds = (List<Long>) request.get("productoIds");
+        Long categoriaId = Long.valueOf(request.get("categoriaId").toString());
+        productoService.assignToCategoria(productoIds, categoriaId);
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("message", "Productos asignados exitosamente");
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/productos/{id}")

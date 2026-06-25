@@ -1,5 +1,6 @@
 package com.tzompcomer.api.repository;
 
+import com.tzompcomer.api.entity.Categoria;
 import com.tzompcomer.api.entity.Producto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,29 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     Optional<Producto> findBySku(String sku);
 
     List<Producto> findByActivoTrue();
+
+    @Query("SELECT p FROM Producto p WHERE " +
+           "p.activo = true AND " +
+           "p.categoriaEntity IS NOT NULL AND " +
+           "p.categoriaEntity.activo = true AND " +
+           "p.categoriaEntity.departamento IS NOT NULL AND " +
+           "p.categoriaEntity.departamento.activo = true")
+    List<Producto> findVisibleProductos();
+
+    @Query("SELECT p FROM Producto p WHERE " +
+           "p.activo = true AND " +
+           "p.categoriaEntity IS NOT NULL AND " +
+           "p.categoriaEntity.activo = true AND " +
+           "p.categoriaEntity.departamento IS NOT NULL AND " +
+           "p.categoriaEntity.departamento.activo = true AND " +
+           "(:searchTerm IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<Producto> findVisibleProductos(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    List<Producto> findByCategoriaEntity(Categoria categoria);
+
+    @Query("SELECT p FROM Producto p WHERE " +
+           "LOWER(p.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+    List<Producto> searchAllProductos(@Param("searchTerm") String searchTerm);
 
     @Query("SELECT p FROM Producto p WHERE " +
            "p.activo = true AND " +

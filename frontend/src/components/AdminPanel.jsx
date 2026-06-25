@@ -15,10 +15,15 @@ const AdminPanel = ({ onImportComplete }) => {
   const [topNegocio, setTopNegocio] = useState([]);
   const [cargandoAnalisis, setCargandoAnalisis] = useState(false);
 
+  // Estados para Departamentos
+  const [departamentos, setDepartamentos] = useState([]);
+  const [editingDepartamento, setEditingDepartamento] = useState(null);
+  const [departamentoForm, setDepartamentoForm] = useState({ nombre: '', identificadorIcono: '', activo: true });
+
   // Estados para Categorías
   const [categorias, setCategorias] = useState([]);
   const [editingCategoria, setEditingCategoria] = useState(null);
-  const [categoriaForm, setCategoriaForm] = useState({ nombre: '', imagenUrl: '' });
+  const [categoriaForm, setCategoriaForm] = useState({ nombre: '', imagenUrl: '', activo: true, departamentoId: '' });
 
   // Estados para Subcategorías
   const [subcategorias, setSubcategorias] = useState([]);
@@ -28,6 +33,12 @@ const AdminPanel = ({ onImportComplete }) => {
   // Estados para Banners
   const [banners, setBanners] = useState([]);
   const [bannerForm, setBannerForm] = useState({ imagenUrl: '' });
+
+  // Estados para Almacén de Productos
+  const [productos, setProductos] = useState([]);
+  const [productosSeleccionados, setProductosSeleccionados] = useState([]);
+  const [busquedaProducto, setBusquedaProducto] = useState('');
+  const [categoriaSeleccionadaAsignar, setCategoriaSeleccionadaAsignar] = useState('');
 
   // --- Funciones para Importación ---
   const handleFileChange = (e) => {
@@ -88,6 +99,52 @@ const AdminPanel = ({ onImportComplete }) => {
     }
   };
 
+  // --- Funciones para Departamentos ---
+  const fetchDepartamentos = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/departamentos`);
+      const data = await res.json();
+      setDepartamentos(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveDepartamento = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingDepartamento) {
+        await fetch(`${API_BASE_URL}/departamentos/${editingDepartamento.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(departamentoForm)
+        });
+      } else {
+        await fetch(`${API_BASE_URL}/departamentos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(departamentoForm)
+        });
+      }
+      fetchDepartamentos();
+      setEditingDepartamento(null);
+      setDepartamentoForm({ nombre: '', identificadorIcono: '', activo: true });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteDepartamento = async (id) => {
+    if (confirm('¿Seguro que quieres eliminar este departamento?')) {
+      try {
+        await fetch(`${API_BASE_URL}/departamentos/${id}`, { method: 'DELETE' });
+        fetchDepartamentos();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
   // --- Funciones para Categorías ---
   const fetchCategorias = async () => {
     try {
@@ -102,22 +159,27 @@ const AdminPanel = ({ onImportComplete }) => {
   const handleSaveCategoria = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...categoriaForm,
+        departamento: categoriaForm.departamentoId ? { id: Number(categoriaForm.departamentoId) } : null
+      };
       if (editingCategoria) {
         await fetch(`${API_BASE_URL}/categorias/${editingCategoria.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(categoriaForm)
+          body: JSON.stringify(payload)
         });
       } else {
         await fetch(`${API_BASE_URL}/categorias`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(categoriaForm)
+          body: JSON.stringify(payload)
         });
       }
       fetchCategorias();
+      fetchDepartamentos();
       setEditingCategoria(null);
-      setCategoriaForm({ nombre: '', imagenUrl: '' });
+      setCategoriaForm({ nombre: '', imagenUrl: '', activo: true, departamentoId: '' });
     } catch (err) {
       console.error(err);
     }
@@ -218,18 +280,83 @@ const AdminPanel = ({ onImportComplete }) => {
     }
   };
 
+  // --- Funciones para Almacén de Productos ---
+  const fetchProductos = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/productos/all`);
+      const data = await res.json();
+      setProductos(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleProductoSeleccionado = (id) => {
+    setProductosSeleccionados(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(p => p !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleSeleccionarTodos = () => {
+    setProductosSeleccionados(productosFiltrados.map(p => p.id));
+  };
+
+  const handleDeseleccionarTodos = () => {
+    setProductosSeleccionados([]);
+  };
+
+  const handleAsignarCategoria = async () => {
+    if (!categoriaSeleccionadaAsignar || productosSeleccionados.length === 0) {
+      alert('Por favor selecciona productos y una categoría');
+      return;
+    }
+    try {
+      await fetch(`${API_BASE_URL}/productos/assign-categoria`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productoIds: productosSeleccionados,
+          categoriaId: Number(categoriaSeleccionadaAsignar)
+        })
+      });
+      alert('Productos asignados correctamente!');
+      setProductosSeleccionados([]);
+      fetchProductos();
+    } catch (err) {
+      console.error(err);
+      alert('Error al asignar productos');
+    }
+  };
+
+  const productosFiltrados = productos.filter(p => {
+    if (!busquedaProducto) return true;
+    const searchLower = busquedaProducto.toLowerCase();
+    return p.nombre.toLowerCase().includes(searchLower) || p.sku.toLowerCase().includes(searchLower);
+  });
+
   // --- Efectos ---
   useEffect(() => {
     fetchAnalisis();
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'categorias') fetchCategorias();
+    if (activeTab === 'categorias' || activeTab === 'almacen') {
+      fetchCategorias();
+      fetchDepartamentos();
+    }
+    if (activeTab === 'departamentos') fetchDepartamentos();
     if (activeTab === 'subcategorias') {
       fetchSubcategorias();
       fetchCategorias();
     }
     if (activeTab === 'banners') fetchBanners();
+    if (activeTab === 'almacen') {
+      fetchProductos();
+    }
   }, [activeTab]);
 
   return (
@@ -244,7 +371,7 @@ const AdminPanel = ({ onImportComplete }) => {
               </div>
               <div>
                 <h1 className="text-2xl font-black text-gray-900">Panel de Administración</h1>
-                <p className="text-sm text-gray-500">Gestiona tu tienda desde aquí</p>
+                <p className="text-sm text-gray-500">Master Catalog Manager</p>
               </div>
             </div>
           </div>
@@ -252,10 +379,12 @@ const AdminPanel = ({ onImportComplete }) => {
 
         {/* Tabs */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="flex border-b border-gray-200">
+          <div className="flex flex-wrap border-b border-gray-200">
             {[
-              { id: 'productos', label: '📦 Productos' },
+              { id: 'productos', label: '📦 Importar' },
+              { id: 'departamentos', label: '🏢 Departamentos' },
               { id: 'categorias', label: '📁 Categorías' },
+              { id: 'almacen', label: '🏪 Almacén' },
               { id: 'subcategorias', label: '📂 Subcategorías' },
               { id: 'banners', label: '⭐ Banners' },
             ].map((tab) => (
@@ -275,7 +404,7 @@ const AdminPanel = ({ onImportComplete }) => {
 
           {/* Tab Content */}
           <div className="p-8">
-            {/* --- Tab: Productos --- */}
+            {/* --- Tab: Productos (Importación) --- */}
             {activeTab === 'productos' && (
               <div className="space-y-8">
                 {/* Importación */}
@@ -375,11 +504,82 @@ const AdminPanel = ({ onImportComplete }) => {
               </div>
             )}
 
+            {/* --- Tab: Departamentos --- */}
+            {activeTab === 'departamentos' && (
+              <div className="space-y-6">
+                <form onSubmit={handleSaveDepartamento} className="bg-gray-50 p-6 rounded-2xl space-y-4">
+                  <h3 className="font-black text-gray-900 text-lg">{editingDepartamento ? 'Editar Departamento' : 'Agregar Departamento'}</h3>
+                  <input
+                    type="text"
+                    placeholder="Nombre del departamento"
+                    value={departamentoForm.nombre}
+                    onChange={(e) => setDepartamentoForm({ ...departamentoForm, nombre: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Identificador de ícono"
+                    value={departamentoForm.identificadorIcono}
+                    onChange={(e) => setDepartamentoForm({ ...departamentoForm, identificadorIcono: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
+                  />
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={departamentoForm.activo}
+                      onChange={(e) => setDepartamentoForm({ ...departamentoForm, activo: e.target.checked })}
+                      className="w-5 h-5 rounded"
+                    />
+                    <span className="font-semibold text-gray-700">Activo (visible en la tienda)</span>
+                  </label>
+                  <div className="flex gap-3">
+                    <button type="submit" className="flex-1 bg-[#0033A0] text-white py-3 rounded-xl font-bold">Guardar</button>
+                    {editingDepartamento && (
+                      <button type="button" onClick={() => { setEditingDepartamento(null); setDepartamentoForm({ nombre: '', identificadorIcono: '', activo: true }); }} className="px-6 py-3 border border-gray-300 rounded-xl font-semibold">Cancelar</button>
+                    )}
+                  </div>
+                </form>
+
+                <div className="grid gap-4">
+                  {departamentos.map((depto) => (
+                    <div key={depto.id} className="flex items-center justify-between p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-[#0033A0]/10 to-[#D4AF37]/10 rounded-xl flex items-center justify-center">
+                          <span className="text-[#0033A0] font-black text-xl">{depto.identificadorIcono || '📂'}</span>
+                        </div>
+                        <div>
+                          <h4 className="font-black text-gray-900 text-lg">{depto.nombre}</h4>
+                          <span className={`text-xs px-2 py-1 rounded-full font-semibold ${depto.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {depto.activo ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <button onClick={() => { setEditingDepartamento(depto); setDepartamentoForm({ nombre: depto.nombre, identificadorIcono: depto.identificadorIcono || '', activo: depto.activo }); }} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold">Editar</button>
+                        <button onClick={() => handleDeleteDepartamento(depto.id)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold">Eliminar</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* --- Tab: Categorías --- */}
             {activeTab === 'categorias' && (
               <div className="space-y-6">
                 <form onSubmit={handleSaveCategoria} className="bg-gray-50 p-6 rounded-2xl space-y-4">
                   <h3 className="font-black text-gray-900 text-lg">{editingCategoria ? 'Editar Categoría' : 'Agregar Categoría'}</h3>
+                  <select
+                    value={categoriaForm.departamentoId}
+                    onChange={(e) => setCategoriaForm({ ...categoriaForm, departamentoId: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
+                  >
+                    <option value="">Selecciona un departamento</option>
+                    {departamentos.map((depto) => (
+                      <option key={depto.id} value={depto.id}>{depto.nombre}</option>
+                    ))}
+                  </select>
                   <input
                     type="text"
                     placeholder="Nombre de la categoría"
@@ -395,10 +595,19 @@ const AdminPanel = ({ onImportComplete }) => {
                     onChange={(e) => setCategoriaForm({ ...categoriaForm, imagenUrl: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
                   />
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={categoriaForm.activo}
+                      onChange={(e) => setCategoriaForm({ ...categoriaForm, activo: e.target.checked })}
+                      className="w-5 h-5 rounded"
+                    />
+                    <span className="font-semibold text-gray-700">Activo (visible en la tienda)</span>
+                  </label>
                   <div className="flex gap-3">
                     <button type="submit" className="flex-1 bg-[#0033A0] text-white py-3 rounded-xl font-bold">Guardar</button>
                     {editingCategoria && (
-                      <button type="button" onClick={() => { setEditingCategoria(null); setCategoriaForm({ nombre: '', imagenUrl: '' }); }} className="px-6 py-3 border border-gray-300 rounded-xl font-semibold">Cancelar</button>
+                      <button type="button" onClick={() => { setEditingCategoria(null); setCategoriaForm({ nombre: '', imagenUrl: '', activo: true, departamentoId: '' }); }} className="px-6 py-3 border border-gray-300 rounded-xl font-semibold">Cancelar</button>
                     )}
                   </div>
                 </form>
@@ -410,14 +619,112 @@ const AdminPanel = ({ onImportComplete }) => {
                         {categoria.imagenUrl && (
                           <img src={categoria.imagenUrl} alt={categoria.nombre} className="w-16 h-16 object-cover rounded-xl" />
                         )}
-                        <h4 className="font-black text-gray-900 text-lg">{categoria.nombre}</h4>
+                        <div>
+                          <h4 className="font-black text-gray-900 text-lg">{categoria.nombre}</h4>
+                          <p className="text-sm text-gray-500">
+                            {categoria.departamento ? `Departamento: ${categoria.departamento.nombre}` : 'Sin departamento'}
+                          </p>
+                          <span className={`text-xs px-2 py-1 rounded-full font-semibold mt-1 inline-block ${categoria.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {categoria.activo ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex gap-3">
-                        <button onClick={() => { setEditingCategoria(categoria); setCategoriaForm({ nombre: categoria.nombre, imagenUrl: categoria.imagenUrl }); }} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold">Editar</button>
+                        <button onClick={() => { 
+                          setEditingCategoria(categoria); 
+                          setCategoriaForm({ 
+                            nombre: categoria.nombre, 
+                            imagenUrl: categoria.imagenUrl || '', 
+                            activo: categoria.activo,
+                            departamentoId: categoria.departamento?.id || '' 
+                          }); 
+                        }} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold">Editar</button>
                         <button onClick={() => handleDeleteCategoria(categoria.id)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold">Eliminar</button>
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* --- Tab: Almacén --- */}
+            {activeTab === 'almacen' && (
+              <div className="space-y-6">
+                {/* Barra de herramientas */}
+                <div className="bg-gray-50 p-6 rounded-2xl space-y-4">
+                  <div className="flex flex-wrap gap-4 items-center">
+                    <input
+                      type="text"
+                      placeholder="Buscar productos por nombre o SKU..."
+                      value={busquedaProducto}
+                      onChange={(e) => setBusquedaProducto(e.target.value)}
+                      className="flex-1 min-w-[250px] px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
+                    />
+                    <select
+                      value={categoriaSeleccionadaAsignar}
+                      onChange={(e) => setCategoriaSeleccionadaAsignar(e.target.value)}
+                      className="px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
+                    >
+                      <option value="">Selecciona categoría para asignar</option>
+                      {categorias.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.nombre} {cat.departamento ? `(${cat.departamento.nombre})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleAsignarCategoria}
+                      disabled={productosSeleccionados.length === 0 || !categoriaSeleccionadaAsignar}
+                      className="px-6 py-3 bg-[#0033A0] text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Asignar ({productosSeleccionados.length})
+                    </button>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleSeleccionarTodos}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold"
+                    >
+                      Seleccionar todos ({productosFiltrados.length})
+                    </button>
+                    <button
+                      onClick={handleDeseleccionarTodos}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold"
+                    >
+                      Deseleccionar todos
+                    </button>
+                  </div>
+                </div>
+
+                {/* Lista de productos */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="max-h-[600px] overflow-y-auto">
+                    {productosFiltrados.map((producto) => (
+                      <div key={producto.id} className="flex items-center gap-4 p-4 border-b border-gray-100 hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={productosSeleccionados.includes(producto.id)}
+                          onChange={() => handleToggleProductoSeleccionado(producto.id)}
+                          className="w-5 h-5 rounded"
+                        />
+                        {producto.imagenUrl && (
+                          <img src={producto.imagenUrl} alt={producto.nombre} className="w-12 h-12 object-cover rounded-lg" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-bold text-gray-900">{producto.nombre}</h4>
+                          <p className="text-xs text-gray-500">SKU: {producto.sku}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-black text-[#0033A0]">${producto.precio.toFixed(2)}</p>
+                          <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                            producto.categoriaEntity ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {producto.categoriaEntity ? producto.categoriaEntity.nombre : 'Sin categoría'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "departamentos")
 @Data
@@ -23,4 +26,12 @@ public class Departamento {
 
     @Column(name = "identificador_icono")
     private String identificadorIcono;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean activo = true;
+
+    @OneToMany(mappedBy = "departamento", cascade = CascadeType.ALL, orphanRemoval = false)
+    @Builder.Default
+    private List<Categoria> categorias = new ArrayList<>();
 }

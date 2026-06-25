@@ -21,6 +21,11 @@ public class DepartamentoController {
         return ResponseEntity.ok(departamentoService.findAll());
     }
 
+    @GetMapping("/active")
+    public ResponseEntity<List<Departamento>> getActive() {
+        return ResponseEntity.ok(departamentoService.findActive());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Departamento> getById(@PathVariable Long id) {
         return departamentoService.findById(id)
@@ -31,5 +36,23 @@ public class DepartamentoController {
     @PostMapping
     public ResponseEntity<Departamento> create(@RequestBody Departamento departamento) {
         return ResponseEntity.ok(departamentoService.save(departamento));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Departamento> update(@PathVariable Long id, @RequestBody Departamento departamentoDetails) {
+        Departamento updated = departamentoService.update(id, departamentoDetails);
+        if (updated != null) {
+            return ResponseEntity.ok(updated);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        if (departamentoService.findById(id).isPresent()) {
+            departamentoService.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 }

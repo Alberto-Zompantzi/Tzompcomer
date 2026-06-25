@@ -37,6 +37,7 @@ public class Producto {
     @Deprecated
     private Departamento departamento;
 
+    @Deprecated
     private String categoria;
 
     @Column(name = "imagen_url")
@@ -49,6 +50,10 @@ public class Producto {
     @Column(nullable = false)
     @Builder.Default
     private Boolean activo = true;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "categoria_id")
+    private Categoria categoriaEntity;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "subcategoria_id")

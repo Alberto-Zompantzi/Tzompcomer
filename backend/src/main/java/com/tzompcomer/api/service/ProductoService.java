@@ -1,6 +1,8 @@
 package com.tzompcomer.api.service;
 
+import com.tzompcomer.api.entity.Categoria;
 import com.tzompcomer.api.entity.Producto;
+import com.tzompcomer.api.repository.CategoriaRepository;
 import com.tzompcomer.api.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -19,10 +21,24 @@ public class ProductoService {
 
     private final ProductoRepository productoRepository;
     private final DepartamentoRepository departamentoRepository;
+    private final CategoriaRepository categoriaRepository;
     private final SubcategoriaRepository subcategoriaRepository;
 
     public List<Producto> findAll() {
+        return productoRepository.findAll();
+    }
+
+    public List<Producto> findAllActive() {
         return productoRepository.findByActivoTrue();
+    }
+
+    public List<Producto> findVisible() {
+        return productoRepository.findVisibleProductos();
+    }
+
+    @Cacheable(value = "productosCache", key = "'visible-' + #searchTerm + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public Page<Producto> findVisiblePageable(String searchTerm, Pageable pageable) {
+        return productoRepository.findVisibleProductos(searchTerm, pageable);
     }
 
     @Cacheable(value = "productosCache", key = "#departamentoId + '-' + #searchTerm + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
@@ -33,6 +49,13 @@ public class ProductoService {
     @Cacheable(value = "productosCache", key = "'subcategoria-' + #subcategoriaId + '-' + #searchTerm + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Producto> searchBySubcategoria(Long subcategoriaId, String searchTerm, Pageable pageable) {
         return productoRepository.findBySubcategoriaIdAndSearchTerm(subcategoriaId, searchTerm, pageable);
+    }
+
+    public List<Producto> searchAll(String searchTerm) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return productoRepository.findAll();
+        }
+        return productoRepository.searchAllProductos(searchTerm);
     }
 
     public Optional<Producto> findById(Long id) {
@@ -47,8 +70,6 @@ public class ProductoService {
     public Producto save(Producto producto) {
         return productoRepository.save(producto);
     }
-
-
 
     @Transactional
     public Producto update(Long id, Producto productoActualizado) {
@@ -82,6 +103,10 @@ public class ProductoService {
             if (productoActualizado.getDepartamento() != null && productoActualizado.getDepartamento().getId() != null) {
                 departamentoRepository.findById(productoActualizado.getDepartamento().getId()).ifPresent(existing::setDepartamento);
             }
+            // Actualizar categoriaEntity solo si viene con datos - BUSCAR DE LA BD
+            if (productoActualizado.getCategoriaEntity() != null && productoActualizado.getCategoriaEntity().getId() != null) {
+                categoriaRepository.findById(productoActualizado.getCategoriaEntity().getId()).ifPresent(existing::setCategoriaEntity);
+            }
             // Actualizar subcategoria solo si viene con datos - BUSCAR DE LA BD
             if (productoActualizado.getSubcategoria() != null && productoActualizado.getSubcategoria().getId() != null) {
                 subcategoriaRepository.findById(productoActualizado.getSubcategoria().getId()).ifPresent(existing::setSubcategoria);
@@ -89,6 +114,21 @@ public class ProductoService {
             // Guardar y retornar
             return productoRepository.save(existing);
         }).orElse(null);
+    }
+
+    @Transactional
+    public void assignToCategoria(List<Long> productoIds, Long categoriaId) {
+        Optional<Categoria> categoriaOpt = categoriaRepository.findById(categoriaId);
+        if (categoriaOpt.isEmpty()) {
+            return;
+        }
+        Categoria categoria = categoriaOpt.get();
+        for (Long productoId : productoIds) {
+            productoRepository.findById(productoId).ifPresent(producto -> {
+                producto.setCategoriaEntity(categoria);
+                productoRepository.save(producto);
+            });
+        }
     }
 
     @Transactional
