@@ -19,7 +19,11 @@ public class CategoriaService {
     private final MacrocategoriaRepository macrocategoriaRepository;
 
     public List<Categoria> findAll() {
-        return categoriaRepository.findAll();
+        return categoriaRepository.findAll().stream()
+                .sorted((a, b) -> Integer.compare(
+                        a.getOrden() != null ? a.getOrden() : 0,
+                        b.getOrden() != null ? b.getOrden() : 0))
+                .toList();
     }
 
     public List<Categoria> findActive() {

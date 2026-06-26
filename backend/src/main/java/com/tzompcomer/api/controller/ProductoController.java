@@ -1,11 +1,9 @@
 package com.tzompcomer.api.controller;
 
-import com.tzompcomer.api.config.DatabaseMigration;
 import com.tzompcomer.api.entity.Producto;
 import com.tzompcomer.api.service.ExcelImportService;
 import com.tzompcomer.api.service.ProductoService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -14,9 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api")
@@ -26,7 +22,6 @@ public class ProductoController {
 
     private final ProductoService productoService;
     private final ExcelImportService excelImportService;
-    private final DatabaseMigration databaseMigration;
 
     @GetMapping("/productos/all")
     public ResponseEntity<List<Producto>> getAll() {
@@ -43,7 +38,6 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.searchAll(searchTerm));
     }
 
-    // NUEVOS ENDPOINTS PARA ASIGNACIÓN MASIVA
     @GetMapping("/productos/excel-categorias")
     public ResponseEntity<List<String>> getExcelCategorias() {
         return ResponseEntity.ok(productoService.findDistinctExcelCategorias());
@@ -56,7 +50,7 @@ public class ProductoController {
         productoService.assignExcelCategoriaToCategoria(excelCategoria, categoriaId);
         Map<String, String> response = new HashMap<>();
         response.put("status", "success");
-        response.put("message", "Productos de la etiqueta '" + excelCategoria + "' asignados exitosamente a la categoría");
+        response.put("message", "Productos asignados exitosamente");
         return ResponseEntity.ok(response);
     }
 
@@ -68,7 +62,7 @@ public class ProductoController {
         productoService.assignExcelCategoriaToMacrocategoria(excelCategoria, macrocategoriaId, categoriaNombre);
         Map<String, String> response = new HashMap<>();
         response.put("status", "success");
-        response.put("message", "Productos de la etiqueta '" + excelCategoria + "' asignados exitosamente a la categoría '" + categoriaNombre + "'");
+        response.put("message", "Productos asignados exitosamente");
         return ResponseEntity.ok(response);
     }
 
@@ -133,17 +127,29 @@ public class ProductoController {
     }
 
     @PostMapping("/admin/upload-excel")
-    public ResponseEntity<Map<String, Object>> uploadExcel(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<Map<String, Object>> uploadExcel(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "macro", required = false) String macro,
+            @RequestParam(value = "departamentos", required = false) List<String> departamentos) {
         try {
-            Map<String, Object> result = excelImportService.importExcel(file);
+            Set<String> deptFilter = departamentos != null ? new HashSet<>(departamentos) : null;
+            Map<String, Object> result = excelImportService.importExcel(file.getInputStream(), deptFilter, macro);
             result.put("status", "success");
-            result.put("message", "Importación completada exitosamente");
+            result.put("message", "Importación B2B completada");
             return ResponseEntity.ok(result);
         } catch (IOException e) {
             Map<String, Object> errorResult = new HashMap<>();
             errorResult.put("status", "error");
-            errorResult.put("message", "Error al importar el archivo: " + e.getMessage());
+            errorResult.put("message", "Error al importar: " + e.getMessage());
             return ResponseEntity.internalServerError().body(errorResult);
         }
+    }
+
+    @PostMapping("/admin/reclassify")
+    public ResponseEntity<Map<String, Object>> reclassify() {
+        Map<String, Object> result = excelImportService.reclassifyAllProducts();
+        result.put("status", "success");
+        result.put("message", "Productos reclasificados");
+        return ResponseEntity.ok(result);
     }
 }

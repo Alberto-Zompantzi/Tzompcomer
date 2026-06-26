@@ -1,4 +1,15 @@
 // Definimos la estructura de categorías comerciales
+export const COMMERCIAL_TO_MACRO = {
+  "desechables-envases": "Desechables y Envases",
+  "plasticos-contenedores": "Plásticos y Contenedores",
+  "materias-primas": "Materias Primas e Insumos",
+  "ferreteria-herramientas": "Ferretería y Herramientas",
+};
+
+export const MACRO_TO_COMMERCIAL = Object.fromEntries(
+  Object.entries(COMMERCIAL_TO_MACRO).map(([k, v]) => [v, k]),
+);
+
 export const CATEGORIAS_COMERCIALES = [
   {
     id: "todos",

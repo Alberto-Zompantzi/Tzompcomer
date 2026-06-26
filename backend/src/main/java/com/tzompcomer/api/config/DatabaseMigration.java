@@ -1,115 +1,124 @@
 package com.tzompcomer.api.config;
 
-import com.tzompcomer.api.entity.Categoria;
-import com.tzompcomer.api.entity.Macrocategoria;
-import com.tzompcomer.api.entity.Producto;
-import com.tzompcomer.api.repository.CategoriaRepository;
-import com.tzompcomer.api.repository.MacrocategoriaRepository;
+import com.tzompcomer.api.entity.BannerDestacado;
+import com.tzompcomer.api.repository.BannerDestacadoRepository;
 import com.tzompcomer.api.repository.ProductoRepository;
+import com.tzompcomer.api.service.CatalogSeedService;
 import com.tzompcomer.api.service.ExcelImportService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.CommandLineRunner;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
-import java.util.HashMap;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * DatabaseMigration - DESACTIVADO
- * La migración de la base de datos se realizó manualmente en Neon.
- * Este componente ya no ejecuta ninguna alteración de tablas.
- */
 @Component
 @RequiredArgsConstructor
-public class DatabaseMigration implements CommandLineRunner {
+@Slf4j
+public class DatabaseMigration {
 
     private final ProductoRepository productoRepository;
-    private final MacrocategoriaRepository macrocategoriaRepository;
-    private final CategoriaRepository categoriaRepository;
     private final ExcelImportService excelImportService;
+    private final CatalogSeedService catalogSeedService;
+    private final BannerDestacadoRepository bannerDestacadoRepository;
+    @Qualifier("catalogImportExecutor")
+    private final TaskExecutor catalogImportExecutor;
 
-    @Override
-    public void run(String... args) {
-        System.out.println("ℹ️ DatabaseMigration DESACTIVADO: Migración realizada manualmente en Neon.");
+    @Value("${catalog.auto-import:true}")
+    private boolean autoImport;
 
-        // Solo mantenemos la importación automática inicial si la DB está completamente vacía
-        autoImportExcelOnlyIfEmpty();
+    private final AtomicBoolean importInProgress = new AtomicBoolean(false);
+    private final AtomicBoolean importCompleted = new AtomicBoolean(false);
+
+    public boolean isImportInProgress() {
+        return importInProgress.get();
     }
 
-    /**
-     * Método público para migrar productos desde la relación antigua a la nueva estructura de 3 niveles
-     */
-    public void migrarProductosANuevaRelacion() {
-        System.out.println("🔄 Iniciando migración de productos...");
+    public boolean isImportCompleted() {
+        return importCompleted.get();
+    }
 
-        // Paso 1: Crear las 4 macrocategorías si no existen
-        List<String> macroNames = List.of(
-            "Desechables y Envases",
-            "Bolsas (Plástico, kraft, papel)",
-            "Materias Primas",
-            "Ferretería y Herramientas"
-        );
-        Map<String, Macrocategoria> macros = new HashMap<>();
-        for (String name : macroNames) {
-            Macrocategoria macro = macrocategoriaRepository.findByNombre(name).orElseGet(() -> {
-                Macrocategoria newMacro = Macrocategoria.builder().nombre(name).activo(true).build();
-                return macrocategoriaRepository.save(newMacro);
-            });
-            macros.put(name, macro);
-            System.out.println("✅ Macrocategoría: " + name);
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        catalogSeedService.seedCatalogIfEmpty();
+        seedBannersIfEmpty();
+        catalogImportExecutor.execute(this::runImportIfNeeded);
+    }
+
+    private void runImportIfNeeded() {
+        if (!autoImport) {
+            log.info("Importación automática desactivada (catalog.auto-import=false)");
+            return;
         }
-
-        // Paso 2: Actualizar productos para asignar categorías (si es necesario)
-        // Esta lógica dependerá de los datos existentes en tu base de datos
-        System.out.println("✅ Migración completada!");
-    }
-
-    private String getMacrocategoriaForCategoria(String categoriaNombre) {
-        Map<String, String> mapping = new HashMap<>();
-        // Desechables y Envases
-        mapping.put("Desechable", "Desechables y Envases");
-        mapping.put("Vasos", "Desechables y Envases");
-        mapping.put("Platos", "Desechables y Envases");
-        mapping.put("Contenedores", "Desechables y Envases");
-        mapping.put("Dulces", "Desechables y Envases");
-        mapping.put("Abarrotes", "Desechables y Envases");
-        mapping.put("Papelería", "Desechables y Envases");
-        // Bolsas
-        mapping.put("Plástico", "Bolsas (Plástico, kraft, papel)");
-        // Materias Primas
-        mapping.put("Materia prima", "Materias Primas");
-        mapping.put("Materias Primas", "Materias Primas");
-        mapping.put("Harinas", "Materias Primas");
-        mapping.put("Azúcares", "Materias Primas");
-        // Ferretería y Herramientas
-        mapping.put("Ferretería", "Ferretería y Herramientas");
-        mapping.put("Herramientas", "Ferretería y Herramientas");
-        mapping.put("Gaviota", "Ferretería y Herramientas");
-        mapping.put("Inix", "Ferretería y Herramientas");
-
-        return mapping.getOrDefault(categoriaNombre, "Desechables y Envases");
-    }
-
-    private void autoImportExcelOnlyIfEmpty() {
+        if (productoRepository.count() > 0) {
+            importCompleted.set(true);
+            log.info("BD con {} productos — importación automática omitida", productoRepository.count());
+            return;
+        }
+        importInProgress.set(true);
         try {
-            if (productoRepository.count() == 0) {
-                System.out.println("📦 Base de datos completamente vacía, intentando importar datos desde productos.xlsx...");
-                ClassPathResource resource = new ClassPathResource("productos.xlsx");
-                if (resource.exists()) {
-                    try (InputStream is = resource.getInputStream()) {
-                        var result = excelImportService.importExcel(is);
-                        System.out.println("✅ Importación automática completada! Procesados: " + result.get("totalProcessed") + ", creados: " + result.get("created"));
-                    }
-                } else {
-                    System.out.println("ℹ️ No se encontró productos.xlsx en resources, omitiendo importación automática");
-                }
+            importFromAvailableExcel();
+            importCompleted.set(true);
+        } finally {
+            importInProgress.set(false);
+        }
+    }
+
+    private void importFromAvailableExcel() {
+        try {
+            InputStream stream = openExcelStream();
+            if (stream == null) {
+                log.warn("No se encontró productos.xlsx — sube el catálogo desde el panel admin");
+                return;
+            }
+            log.info("Iniciando importación B2B desde Excel (puede tardar ~1 min)...");
+            try (stream) {
+                Map<String, Object> result = excelImportService.importExcel(stream);
+                log.info("Importación B2B completada: {}", result);
             }
         } catch (Exception e) {
-            System.err.println("⚠️ Error durante la importación automática: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error en importación automática: {}", e.getMessage(), e);
         }
+    }
+
+    private InputStream openExcelStream() throws Exception {
+        ClassPathResource resource = new ClassPathResource("productos.xlsx");
+        if (resource.exists()) {
+            return resource.getInputStream();
+        }
+        Path rootExcel = Path.of("productos.xlsx");
+        if (Files.exists(rootExcel)) {
+            return Files.newInputStream(rootExcel);
+        }
+        Path parentExcel = Path.of("../productos.xlsx");
+        if (Files.exists(parentExcel)) {
+            return Files.newInputStream(parentExcel);
+        }
+        return null;
+    }
+
+    private void seedBannersIfEmpty() {
+        if (bannerDestacadoRepository.count() > 0) {
+            return;
+        }
+        List<String> urls = List.of(
+                "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=1600&q=80",
+                "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1600&q=80",
+                "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1600&q=80"
+        );
+        for (String url : urls) {
+            bannerDestacadoRepository.save(BannerDestacado.builder().imagenUrl(url).build());
+        }
+        log.info("Banners destacados sembrados: {}", urls.size());
     }
 }

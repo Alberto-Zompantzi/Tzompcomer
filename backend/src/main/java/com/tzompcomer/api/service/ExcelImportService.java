@@ -1,5 +1,7 @@
 package com.tzompcomer.api.service;
 
+import com.tzompcomer.api.catalog.CatalogConstants;
+import com.tzompcomer.api.entity.Categoria;
 import com.tzompcomer.api.entity.Producto;
 import com.tzompcomer.api.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,128 +22,203 @@ import java.util.*;
 public class ExcelImportService {
 
     private final ProductoRepository productoRepository;
+    private final ProductClassifierService classifierService;
+    private final ProductImageService productImageService;
+    private final CatalogSeedService catalogSeedService;
 
     private static final int BATCH_SIZE = 100;
 
     @Transactional
     public Map<String, Object> importExcel(MultipartFile file) throws IOException {
-        return importExcel(file.getInputStream());
+        return importExcel(file.getInputStream(), null, null);
     }
 
     @Transactional
     public Map<String, Object> importExcel(InputStream is) throws IOException {
+        return importExcel(is, null, null);
+    }
+
+    @Transactional
+    public Map<String, Object> importExcel(InputStream is, Set<String> departamentosFilter, String macroNombreFilter)
+            throws IOException {
+        catalogSeedService.seedCatalogIfEmpty();
+        catalogSeedService.loadCache();
+
         int totalProcessed = 0;
         int created = 0;
         int updated = 0;
+        int skipped = 0;
+        int classified = 0;
 
-        // BORRAR TODOS LOS DATOS ANTERIORES (solo productos, macrocategorías y categorías se mantienen)
-        log.info("Borrando productos antiguos...");
-        productoRepository.deleteAll();
-        log.info("Productos eliminados correctamente!");
+        Map<String, Producto> existingBySku = new HashMap<>();
+        for (Producto p : productoRepository.findAll()) {
+            existingBySku.put(p.getSku(), p);
+        }
+
+        Set<String> allowedDepartments = resolveAllowedDepartments(departamentosFilter, macroNombreFilter);
 
         try (Workbook workbook = WorkbookFactory.create(is)) {
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rows = sheet.iterator();
-
             if (rows.hasNext()) {
-                rows.next(); // Saltar encabezados
-            }
-
-            // 1. Cargar todos los productos existentes por SKU para upsert eficiente
-            Map<String, Producto> existingProductosMap = new HashMap<>();
-            List<Producto> allProductos = productoRepository.findAll();
-            for (Producto p : allProductos) {
-                existingProductosMap.put(p.getSku(), p);
+                rows.next();
             }
 
             List<Producto> batch = new ArrayList<>();
 
             while (rows.hasNext()) {
-                Row currentRow = rows.next();
+                Row row = rows.next();
                 totalProcessed++;
 
                 try {
-                    // Columnas del Excel real
-                    // Columna 0: Codigo → sku
-                    String sku = getCellValueAsString(currentRow.getCell(0));
-                    if (sku == null || sku.trim().isEmpty()) {
+                    String sku = getCellValueAsString(row.getCell(0)).trim();
+                    if (sku.isEmpty()) {
                         continue;
                     }
 
-                    // Columna 1: Descripcion → nombre y descripcion
-                    String descripcion = getCellValueAsString(currentRow.getCell(1));
-                    String nombre = descripcion.length() > 100 ? descripcion.substring(0, 100) : descripcion;
-
-                    // Columna 2: Precio Costo → ignorar
-                    // Columna 3: Precio Venta → precio
-                    BigDecimal precio = getCellValueAsBigDecimal(currentRow.getCell(3));
-                    if (precio == null) {
-                        precio = BigDecimal.ZERO;
+                    String descripcion = getCellValueAsString(row.getCell(1)).trim();
+                    if (descripcion.isEmpty()) {
+                        continue;
                     }
 
-                    // Columna 4: Precio Mayoreo → ignorar
-                    // Columna 5: Inventario → stock (si > 0 → disponible true)
-                    BigDecimal inventario = getCellValueAsBigDecimal(currentRow.getCell(5));
-                    boolean disponible = inventario != null && inventario.compareTo(BigDecimal.ZERO) > 0;
-
-                    // Columna 6: Inv. Minimo → ignorar
-                    // Columna 7: Departamento → guardar como etiqueta (categoria)
-                    String categoriaNombre = getCellValueAsString(currentRow.getCell(7));
-                    if (categoriaNombre == null || categoriaNombre.trim().isEmpty()) {
-                        categoriaNombre = "General";
+                    String excelDept = normalizeDept(getCellValueAsString(row.getCell(7)));
+                    if (!classifierService.isB2BDepartment(excelDept)) {
+                        skipped++;
+                        continue;
                     }
-                    categoriaNombre = categoriaNombre.toLowerCase().trim();
-
-                    // Columna 8: Imagen URL (opcional)
-                    String imagenUrl = getCellValueAsString(currentRow.getCell(8));
-                    if (imagenUrl == null || imagenUrl.trim().isEmpty()) {
-                        imagenUrl = categoriaNombre;
+                    if (allowedDepartments != null && !allowedDepartments.contains(excelDept)) {
+                        skipped++;
+                        continue;
                     }
 
-                    // Lógica: crear nuevos productos (todo es nuevo porque borramos todo antes!
-                    Producto producto = Producto.builder()
-                            .sku(sku)
-                            .nombre(nombre)
-                            .descripcion(descripcion)
-                            .precio(precio)
-                            .disponible(disponible)
-                            .categoria(categoriaNombre)
-                            .imagenUrl(imagenUrl)
-                            .build();
-                    created++;
+                    String nombre = descripcion.length() > 120 ? descripcion.substring(0, 120) : descripcion;
+                    BigDecimal precio = getCellValueAsBigDecimal(row.getCell(3));
+                    BigDecimal inventario = getCellValueAsBigDecimal(row.getCell(5));
+                    boolean disponible = inventario.compareTo(BigDecimal.ZERO) > 0;
 
-                    batch.add(producto);
+                    String macroNombre = classifierService.resolveMacroNombre(excelDept);
+                    String categoryName = classifierService.classifyCategoryName(excelDept, nombre, descripcion);
+                    Categoria categoria = catalogSeedService.resolveCategory(macroNombre, categoryName);
+                    classified++;
+
+                    String imagenUrl = productImageService.resolveProductImage(nombre, descripcion, categoryName, macroNombre);
+
+                    Producto existing = existingBySku.get(sku);
+                    if (existing != null) {
+                        existing.setNombre(nombre);
+                        existing.setDescripcion(descripcion);
+                        existing.setPrecio(precio);
+                        existing.setDisponible(disponible);
+                        existing.setCategoria(excelDept);
+                        existing.setCategoriaEntity(categoria);
+                        existing.setImagenUrl(imagenUrl);
+                        existing.setActivo(true);
+                        batch.add(existing);
+                        updated++;
+                    } else {
+                        Producto producto = Producto.builder()
+                                .sku(sku)
+                                .nombre(nombre)
+                                .descripcion(descripcion)
+                                .precio(precio)
+                                .disponible(disponible)
+                                .activo(true)
+                                .categoria(excelDept)
+                                .categoriaEntity(categoria)
+                                .imagenUrl(imagenUrl)
+                                .build();
+                        batch.add(producto);
+                        existingBySku.put(sku, producto);
+                        created++;
+                    }
 
                     if (batch.size() >= BATCH_SIZE) {
-                        saveBatch(batch);
+                        productoRepository.saveAll(batch);
                         batch.clear();
                     }
                 } catch (Exception e) {
-                    log.error("Error procesando fila " + (totalProcessed + 1), e);
+                    log.error("Error procesando fila {}", totalProcessed + 1, e);
                 }
             }
 
             if (!batch.isEmpty()) {
-                saveBatch(batch);
+                productoRepository.saveAll(batch);
             }
         }
 
         Map<String, Object> result = new HashMap<>();
         result.put("totalProcessed", totalProcessed);
         result.put("created", created);
+        result.put("updated", updated);
+        result.put("skipped", skipped);
+        result.put("classified", classified);
         return result;
     }
 
-    private void saveBatch(List<Producto> batch) {
-        productoRepository.saveAll(batch);
-        log.info("Guardado lote de {} productos", batch.size());
+    @Transactional
+    public Map<String, Object> reclassifyAllProducts() {
+        catalogSeedService.loadCache();
+        int reclassified = 0;
+        List<Producto> productos = productoRepository.findByActivoTrue();
+        for (Producto producto : productos) {
+            if (producto.getCategoria() == null || !classifierService.isB2BDepartment(producto.getCategoria())) {
+                continue;
+            }
+            String macro = classifierService.resolveMacroNombre(producto.getCategoria());
+            String catName = classifierService.classifyCategoryName(
+                    producto.getCategoria(), producto.getNombre(), producto.getDescripcion());
+            Categoria categoria = catalogSeedService.resolveCategory(macro, catName);
+            producto.setCategoriaEntity(categoria);
+            producto.setImagenUrl(productImageService.resolveProductImage(
+                    producto.getNombre(), producto.getDescripcion(), catName, macro));
+            reclassified++;
+        }
+        productoRepository.saveAll(productos);
+        Map<String, Object> result = new HashMap<>();
+        result.put("reclassified", reclassified);
+        return result;
+    }
+
+    private Set<String> resolveAllowedDepartments(Set<String> departamentosFilter, String macroNombreFilter) {
+        if (departamentosFilter != null && !departamentosFilter.isEmpty()) {
+            Set<String> normalized = new HashSet<>();
+            for (String d : departamentosFilter) {
+                normalized.add(normalizeDept(d));
+            }
+            return normalized;
+        }
+        if (macroNombreFilter != null && !macroNombreFilter.isBlank()) {
+            for (CatalogConstants.MacroDefinition macro : CatalogConstants.MACROS) {
+                if (macro.nombre().equalsIgnoreCase(macroNombreFilter.trim())) {
+                    Set<String> deps = new HashSet<>();
+                    for (String d : macro.departamentosExcel()) {
+                        deps.add(normalizeDept(d));
+                    }
+                    return deps;
+                }
+            }
+        }
+        return null;
+    }
+
+    private String normalizeDept(String dept) {
+        if (dept == null || dept.isBlank()) {
+            return "";
+        }
+        return dept.toLowerCase().trim();
     }
 
     private String getCellValueAsString(Cell cell) {
         if (cell == null) return "";
         return switch (cell.getCellType()) {
             case STRING -> cell.getStringCellValue();
-            case NUMERIC -> String.valueOf((long) cell.getNumericCellValue());
+            case NUMERIC -> {
+                double val = cell.getNumericCellValue();
+                if (val == Math.floor(val)) {
+                    yield String.valueOf((long) val);
+                }
+                yield String.valueOf(val);
+            }
             case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
             default -> "";
         };
@@ -153,7 +230,7 @@ public class ExcelImportService {
             case NUMERIC -> BigDecimal.valueOf(cell.getNumericCellValue());
             case STRING -> {
                 try {
-                    yield new BigDecimal(cell.getStringCellValue());
+                    yield new BigDecimal(cell.getStringCellValue().trim());
                 } catch (NumberFormatException e) {
                     yield BigDecimal.ZERO;
                 }

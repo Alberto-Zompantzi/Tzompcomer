@@ -95,8 +95,16 @@ const ProductCard = ({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Determine which image to show
-  const displayImage = formData.imagenUrl || product.imagenUrl || familyImage;
+  const resolveImage = (...candidates) => {
+    for (const url of candidates) {
+      if (url && (String(url).startsWith("http") || String(url).startsWith("/"))) {
+        return url;
+      }
+    }
+    return FALLBACK_IMAGE;
+  };
+
+  const displayImage = resolveImage(formData.imagenUrl, product.imagenUrl, familyImage);
 
   return (
     <div

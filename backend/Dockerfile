@@ -26,5 +26,5 @@ COPY --from=build /app/target/*.jar app.jar
 # Exponer el puerto
 EXPOSE 8080
 
-# Ejecutar la aplicación
+# Ejecutar la aplicación (Render define SPRING_PROFILES_ACTIVE=prod)
 ENTRYPOINT ["java", "-jar", "app.jar"]

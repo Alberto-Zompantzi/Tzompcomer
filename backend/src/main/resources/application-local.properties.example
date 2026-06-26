@@ -1,0 +1,15 @@
+# Copia este archivo como application-local.properties (está en .gitignore)
+# y activa el perfil en IntelliJ: SPRING_PROFILES_ACTIVE=local,prod
+#
+# O en IntelliJ Run Configuration → Environment variables:
+#   SPRING_PROFILES_ACTIVE=prod
+#   SPRING_DATASOURCE_URL=jdbc:postgresql://TU-HOST.neon.tech/neondb?sslmode=require
+#
+# Neon entrega la URL completa; pégala tal cual en SPRING_DATASOURCE_URL.
+
+spring.datasource.url=jdbc:postgresql://HOST.neon.tech/neondb?sslmode=require
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.hibernate.ddl-auto=update
+catalog.auto-import=true

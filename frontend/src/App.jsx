@@ -6,6 +6,8 @@ import {
 import Header from "./components/Header";
 import DepartmentNav, {
   CATEGORIAS_COMERCIALES,
+  COMMERCIAL_TO_MACRO,
+  MACRO_TO_COMMERCIAL,
 } from "./components/DepartmentNav";
 import ProductGrid from "./components/ProductGrid";
 import CheckoutModal from "./components/CheckoutModal";
@@ -270,20 +272,20 @@ function App() {
     }
     // Filtrar por categoría comercial (nivel 1)
     else if (selectedCategoryId !== "todos") {
+      const targetMacro = COMMERCIAL_TO_MACRO[selectedCategoryId];
       const categoriaComercial = CATEGORIAS_COMERCIALES.find(
         (c) => c.id === selectedCategoryId,
       );
       if (categoriaComercial) {
         filtered = filtered.filter((product) => {
-          // Usar la relación macrocategoria
-          if (product.categoriaEntity?.macrocategoria?.nombre) {
-            const nombreMacro =
-              product.categoriaEntity.macrocategoria.nombre.toLowerCase();
-            return categoriaComercial.departamentos.some((dept) =>
-              nombreMacro.includes(dept.toLowerCase()),
-            );
+          const macroName = product.categoriaEntity?.macrocategoria?.nombre;
+          if (targetMacro && macroName) {
+            return macroName === targetMacro;
           }
-          return false;
+          const excelDept = (product.categoria || "").toLowerCase();
+          return categoriaComercial.departamentos.some(
+            (dept) => excelDept === dept.toLowerCase(),
+          );
         });
       }
     }
@@ -304,24 +306,16 @@ function App() {
   // Obtener la macrocategoría actual (para filtrar categorías en ProductCard)
   const currentMacrocategoriaId = useMemo(() => {
     if (selectedCategoryId === "todos") return null;
-    // Encontrar la macrocategoría correspondiente al selectedCategoryId
-    const found = macrocategorias.find((d) => {
-      const cat = CATEGORIAS_COMERCIALES.find(
-        (c) => c.id === selectedCategoryId,
-      );
-      return cat?.departamentos.some((dept) =>
-        d.nombre.toLowerCase().includes(dept.toLowerCase()),
-      );
-    });
+    const targetMacro = COMMERCIAL_TO_MACRO[selectedCategoryId];
+    const found = macrocategorias.find((d) => d.nombre === targetMacro);
     return found?.id || null;
   }, [macrocategorias, selectedCategoryId]);
 
-  // Filtrar categorías REALES de la BD por la macrocategoría actual
   const filteredCategorias = useMemo(() => {
     if (!currentMacrocategoriaId) return [];
-    return categories.filter(
-      (cat) => cat.macrocategoria?.id === currentMacrocategoriaId,
-    );
+    return categories
+      .filter((cat) => cat.macrocategoria?.id === currentMacrocategoriaId)
+      .sort((a, b) => (a.orden || 0) - (b.orden || 0));
   }, [categories, currentMacrocategoriaId]);
 
   // Encontrar la categoría entity para una familia
@@ -422,14 +416,9 @@ function App() {
                 identificadorIcono={dept.identificadorIcono}
                 activo={dept.activo}
                 onSelectCategory={() => {
-                  // Encontrar el ID de categoría comercial correspondiente
-                  const catComercial = CATEGORIAS_COMERCIALES.find((cat) =>
-                    cat.departamentos.some((d) =>
-                      dept.nombre.toLowerCase().includes(d.toLowerCase()),
-                    ),
-                  );
-                  if (catComercial) {
-                    handleCategoryChange(catComercial.id);
+                  const commercialId = MACRO_TO_COMMERCIAL[dept.nombre];
+                  if (commercialId) {
+                    handleCategoryChange(commercialId);
                   }
                 }}
                 isAdminMode={isAdminMode}

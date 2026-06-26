@@ -34,9 +34,7 @@ public class ProductoService {
     }
 
     public List<Producto> findVisible() {
-        // Temporal: Devuelve todos los productos activos mientras migramos los datos
-        return productoRepository.findByActivoTrue();
-        // Después de migrar, volver a usar: return productoRepository.findVisibleProductos();
+        return productoRepository.findVisibleProductos();
     }
 
     @Cacheable(value = "productosCache", key = "'visible-' + #searchTerm + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")

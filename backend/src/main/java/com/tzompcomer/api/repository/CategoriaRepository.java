@@ -14,4 +14,6 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     List<Categoria> findByMacrocategoria(Macrocategoria macrocategoria);
     List<Categoria> findByMacrocategoriaAndActivoTrue(Macrocategoria macrocategoria);
     Optional<Categoria> findByNombre(String nombre);
+    List<Categoria> findByMacrocategoria_IdOrderByOrdenAsc(Long macrocategoriaId);
+    Optional<Categoria> findByNombreAndMacrocategoria_Id(String nombre, Long macrocategoriaId);
 }

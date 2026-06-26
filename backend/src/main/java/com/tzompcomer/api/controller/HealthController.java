@@ -1,5 +1,8 @@
 package com.tzompcomer.api.controller;
 
+import com.tzompcomer.api.config.DatabaseMigration;
+import com.tzompcomer.api.repository.ProductoRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,13 +15,20 @@ import java.util.Map;
 @RestController
 @RequestMapping("/")
 @CrossOrigin("*")
+@RequiredArgsConstructor
 public class HealthController {
 
+    private final ProductoRepository productoRepository;
+    private final DatabaseMigration databaseMigration;
+
     @GetMapping
-    public ResponseEntity<Map<String, String>> root() {
-        Map<String, String> response = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> root() {
+        Map<String, Object> response = new HashMap<>();
         response.put("status", "UP");
         response.put("message", "Tzompcomer Backend está activo y funcionando!");
+        response.put("productos", productoRepository.count());
+        response.put("importInProgress", databaseMigration.isImportInProgress());
+        response.put("importCompleted", databaseMigration.isImportCompleted());
         return ResponseEntity.ok(response);
     }
 

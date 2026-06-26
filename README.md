@@ -1,71 +1,72 @@
-# Proyecto Tzompcomer - E-commerce Completo
+# Tzompcomer — Catálogo B2B
 
-## Descripción
-Sistema de e-commerce completo con backend en Spring Boot y frontend en React + Vite + Tailwind CSS.
+E-commerce B2B con backend Spring Boot + Neon PostgreSQL y frontend React/Vite.
 
-## Estructura del Proyecto
+## Arranque local (IntelliJ / terminal)
+
+### Backend — perfil H2 (sin variables, recomendado para probar)
+
+Perfil por defecto: **h2**. No necesitas configurar nada.
+
+1. Abre `backend` en IntelliJ
+2. Ejecuta `ApiApplication.java`
+3. Verifica: http://localhost:8080/ → debe mostrar `"productos": 3938` tras la importación
+4. API: http://localhost:8080/api/macrocategorias
+
+### Backend — Neon PostgreSQL (BD vacía en producción)
+
+En **Run Configuration → Environment variables**:
+
 ```
-Comercializadora-Tzompantzi/
-├── backend/          # Spring Boot + PostgreSQL
-├── frontend/         # React + Vite + Tailwind
-├── database/         # Scripts SQL
-└── EJECUTAR_BACKEND.bat
+SPRING_PROFILES_ACTIVE=prod
+SPRING_DATASOURCE_URL=jdbc:postgresql://TU-HOST.neon.tech/neondb?sslmode=require
 ```
 
-## Requisitos Previos
+Pega la URL completa que te da Neon. Al arrancar con BD vacía:
+- Crea tablas automáticamente (`ddl-auto=update`)
+- Siembra 4 macrocategorías + 38 categorías
+- Importa ~3,938 productos B2B desde `productos.xlsx` en background
 
-### Para el Backend
-- Java 17+
-- PostgreSQL
-- IDE compatible con Spring Boot (IntelliJ, Eclipse, VS Code)
+### Frontend
 
-### Para el Frontend
-- Node.js 18+
-- npm o yarn
-
-## Instalación Rápida
-
-### 1. Configurar la Base de Datos
-1. Instala PostgreSQL
-2. Crea la base de datos: `CREATE DATABASE tzompcomer;`
-3. Ejecuta el script en `database/schema.sql`
-
-### 2. Ejecutar el Backend
-1. Abre la carpeta `backend` en tu IDE
-2. Ejecuta la clase `ApiApplication.java`
-3. Verifica: http://localhost:8080/api/departamentos
-
-### 3. Ejecutar el Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## Funcionalidades
+`.env` local: `VITE_API_URL=http://localhost:8080/api`
 
-### Backend
-- CRUD de productos y departamentos
-- Búsqueda y filtrado
-- Importación de productos desde Excel
-- API REST completa
+## Despliegue producción (Render)
+
+### Backend (Docker)
+
+Archivo `render.yaml` incluido. Variables en Render:
+
+| Variable | Valor |
+|----------|-------|
+| `SPRING_PROFILES_ACTIVE` | `prod` |
+| `SPRING_DATASOURCE_URL` | URL JDBC de Neon |
+| `catalog.auto-import` | `true` |
+
+Health check: `/health`
 
 ### Frontend
-- Navegación por departamentos
-- Búsqueda de productos
-- Carrito de compras persistente
-- Checkout con integración WhatsApp
-- Diseño moderno estilo Shopify
 
-## Colores de la Marca
-- Azul Tzompcomer: #0033A0
-- Dorado Tzompcomer: #D4AF37
-- Azul Oscuro: #001A54
+Build con `VITE_API_URL=https://tzompcomer-backend.onrender.com/api` (ya en `.env.production`).
 
-## Archivos Importantes
-- `database/schema.sql` - Estructura y datos de ejemplo
-- `backend/src/main/resources/application.properties` - Configuración BD
-- `frontend/src/App.jsx` - Punto de entrada del frontend
+## Panel admin
 
-## Contacto
-Para consultas: soporte@tzompcomer.com
+- Footer → clic en `·` → contraseña: `TzompAdmin2026!`
+- Importar Excel, CRUD, reclasificar productos, editar imágenes por URL
+
+## Catálogo B2B
+
+Solo importa departamentos: desechable, INIX, plástico, GAVIOTA, materia prima, ferretería.
+
+4 macrocategorías → 38 categorías → productos con imagen automática por descripción.
+
+## Colores
+
+- Azul: `#0033A0`
+- Dorado: `#D4AF37`

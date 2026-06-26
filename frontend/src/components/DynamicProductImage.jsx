@@ -28,6 +28,14 @@ const getAutomatedImage = (product) => {
   if (texto.includes("tapa")) return "/assets/productos/genericos/tapa.png";
   if (texto.includes("domo")) return "/assets/productos/genericos/domo.png";
   if (texto.includes("harina")) return "/assets/productos/genericos/harina.png";
+  if (texto.includes("charola") || texto.includes("bandeja")) return "/assets/productos/genericos/plato.png";
+  if (texto.includes("contenedor") || texto.includes("bisagra")) return "/assets/productos/genericos/domo.png";
+  if (texto.includes("molde") || texto.includes("aluminio")) return "/assets/productos/genericos/domo.png";
+  if (texto.includes("agitador") || texto.includes("popote")) return "/assets/productos/genericos/vaso.png";
+  if (texto.includes("brocha") || texto.includes("herramienta")) return "https://images.unsplash.com/photo-1534224039826-c7a0dea0e66a?auto=format&fit=crop&w=500&q=80";
+  if (texto.includes("chocolate")) return "https://images.unsplash.com/photo-1511381939415-e44015466834?auto=format&fit=crop&w=500&q=80";
+  if (texto.includes("aceite")) return "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=500&q=80";
+  if (texto.includes("salsa") || texto.includes("condimento")) return "https://images.unsplash.com/photo-1472476440877-efabd5a2b5a9?auto=format&fit=crop&w=500&q=80";
 
   // Ejemplos de como expandir:
   // if (texto.includes("servilleta")) return "/assets/productos/genericos/servilleta.png";
@@ -67,7 +75,10 @@ const DynamicProductImage = ({ product, isHovered }) => {
   const hasValidImage =
     product.imagenUrl &&
     product.imagenUrl.trim() !== "" &&
-    product.imagenUrl.trim().toLowerCase() !== "categoria";
+    product.imagenUrl.trim().toLowerCase() !== "categoria" &&
+    !product.imagenUrl.trim().toLowerCase().startsWith("desechable") &&
+    !product.imagenUrl.trim().toLowerCase().startsWith("materia") &&
+    (product.imagenUrl.startsWith("http") || product.imagenUrl.startsWith("/"));
 
   // Obtener imagen genérica por palabra clave
   const automatedImage = getAutomatedImage(product);

@@ -1,5 +1,6 @@
 package com.tzompcomer.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,10 +30,14 @@ public class Macrocategoria {
 
     @Column(nullable = false)
     @Builder.Default
+    private Integer orden = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
     private Boolean activo = true;
 
     @OneToMany(mappedBy = "macrocategoria", cascade = CascadeType.ALL, orphanRemoval = false)
     @Builder.Default
-    @JsonIgnoreProperties("macrocategoria")
+    @JsonIgnore
     private List<Categoria> categorias = new ArrayList<>();
 }

@@ -47,6 +47,8 @@ const AdminPanel = ({ onImportComplete }) => {
   const [excelCategorias, setExcelCategorias] = useState([]);
   const [excelCategoriaSeleccionada, setExcelCategoriaSeleccionada] = useState('');
   const [asignando, setAsignando] = useState(false);
+  const [importMacro, setImportMacro] = useState('');
+  const [reclasificando, setReclasificando] = useState(false);
 
   // --- Funciones para Importación ---
   const handleFileChange = (e) => {
@@ -87,8 +89,11 @@ const AdminPanel = ({ onImportComplete }) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      const url = importMacro
+        ? `${API_BASE_URL}/admin/upload-excel?macro=${encodeURIComponent(importMacro)}`
+        : `${API_BASE_URL}/admin/upload-excel`;
 
-      const response = await fetch(`${API_BASE_URL}/admin/upload-excel`, {
+      const response = await fetch(url, {
         method: 'POST',
         body: formData
       });
@@ -107,17 +112,18 @@ const AdminPanel = ({ onImportComplete }) => {
     }
   };
 
-  const handleMigrarProductos = async () => {
-    setMigrando(true);
+  const handleReclassify = async () => {
+    setReclasificando(true);
     try {
-      await fetch(`${API_BASE_URL}/admin/migrar-productos`, { method: 'POST' });
-      alert('¡Migración completada exitosamente!');
+      const res = await fetch(`${API_BASE_URL}/admin/reclassify`, { method: 'POST' });
+      const data = await res.json();
+      alert(`Reclasificados: ${data.reclassified || 0} productos`);
       if (onImportComplete) onImportComplete();
     } catch (err) {
       console.error(err);
-      alert('Error al ejecutar la migración');
+      alert('Error al reclasificar productos');
     } finally {
-      setMigrando(false);
+      setReclasificando(false);
     }
   };
 
@@ -550,6 +556,26 @@ const AdminPanel = ({ onImportComplete }) => {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Importar por macrocategoría (opcional)
+                    </label>
+                    <select
+                      value={importMacro}
+                      onChange={(e) => setImportMacro(e.target.value)}
+                      className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"
+                    >
+                      <option value="">Todo el núcleo B2B</option>
+                      <option value="Desechables y Envases">Desechables y Envases</option>
+                      <option value="Plásticos y Contenedores">Plásticos y Contenedores</option>
+                      <option value="Materias Primas e Insumos">Materias Primas e Insumos</option>
+                      <option value="Ferretería y Herramientas">Ferretería y Herramientas</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Solo productos B2B. Actualiza por SKU sin borrar el catálogo.
+                    </p>
+                  </div>
+
                   <button
                     type="submit"
                     disabled={loading || !file}
@@ -561,11 +587,11 @@ const AdminPanel = ({ onImportComplete }) => {
 
                 {/* Botón de Migración */}
                 <button
-                  onClick={handleMigrarProductos}
-                  disabled={migrando}
+                  onClick={handleReclassify}
+                  disabled={reclasificando}
                   className="w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#B8960C] px-8 py-4 text-base font-black text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {migrando ? '⏳ Migrando productos...' : '🚀 Ejecutar Migración de Catálogo'}
+                  {reclasificando ? 'Reclasificando...' : 'Reclasificar productos con reglas inteligentes'}
                 </button>
 
                 {error && (
@@ -577,14 +603,22 @@ const AdminPanel = ({ onImportComplete }) => {
                 {result && result.status === 'success' && (
                   <div className="p-6 bg-green-50 border border-green-200 rounded-xl">
                     <p className="text-lg font-black text-green-700 mb-4">¡Importación exitosa!</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="bg-white rounded-lg p-4 text-center">
                         <p className="text-3xl font-black text-gray-900">{result.totalProcessed}</p>
-                        <p className="text-xs text-gray-500 font-medium">Total procesados</p>
+                        <p className="text-xs text-gray-500 font-medium">Filas leídas</p>
                       </div>
                       <div className="bg-white rounded-lg p-4 text-center">
                         <p className="text-3xl font-black text-[#0033A0]">{result.created}</p>
                         <p className="text-xs text-gray-500 font-medium">Creados</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4 text-center">
+                        <p className="text-3xl font-black text-green-700">{result.updated || 0}</p>
+                        <p className="text-xs text-gray-500 font-medium">Actualizados</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4 text-center">
+                        <p className="text-3xl font-black text-gray-400">{result.skipped || 0}</p>
+                        <p className="text-xs text-gray-500 font-medium">Omitidos (no B2B)</p>
                       </div>
                     </div>
                   </div>

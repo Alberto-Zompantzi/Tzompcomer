@@ -16,11 +16,13 @@ public class MacrocategoriaService {
     private final MacrocategoriaRepository macrocategoriaRepository;
 
     public List<Macrocategoria> findAll() {
-        return macrocategoriaRepository.findAll();
+        return macrocategoriaRepository.findAllByOrderByOrdenAsc();
     }
 
     public List<Macrocategoria> findActive() {
-        return macrocategoriaRepository.findByActivoTrue();
+        return macrocategoriaRepository.findAllByOrderByOrdenAsc().stream()
+                .filter(Macrocategoria::getActivo)
+                .toList();
     }
 
     public Optional<Macrocategoria> findById(Long id) {
@@ -43,6 +45,9 @@ public class MacrocategoriaService {
             }
             if (macrocategoriaDetails.getActivo() != null) {
                 macrocategoria.setActivo(macrocategoriaDetails.getActivo());
+            }
+            if (macrocategoriaDetails.getOrden() != null) {
+                macrocategoria.setOrden(macrocategoriaDetails.getOrden());
             }
             return macrocategoriaRepository.save(macrocategoria);
         }).orElse(null);

@@ -1,5 +1,6 @@
 package com.tzompcomer.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -30,6 +31,10 @@ public class Categoria {
 
     @Column(nullable = false)
     @Builder.Default
+    private Integer orden = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
     private Boolean activo = true;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -39,6 +44,6 @@ public class Categoria {
 
     @OneToMany(mappedBy = "categoriaEntity", cascade = CascadeType.ALL, orphanRemoval = false)
     @Builder.Default
-    @JsonIgnoreProperties("categoriaEntity")
+    @JsonIgnore
     private List<Producto> productos = new ArrayList<>();
 }

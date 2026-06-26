@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface MacrocategoriaRepository extends JpaRepository<Macrocategoria, Long> {
     Optional<Macrocategoria> findByNombre(String nombre);
     List<Macrocategoria> findByActivoTrue();
+    List<Macrocategoria> findAllByOrderByOrdenAsc();
 }
