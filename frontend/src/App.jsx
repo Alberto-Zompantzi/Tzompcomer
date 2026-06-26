@@ -258,8 +258,14 @@ function App() {
   const productosFiltrados = useMemo(() => {
     let filtered = [...products];
 
-    // Filtrar por categoría comercial
-    if (selectedCategoryId !== "todos") {
+    // Filtrar por categoría seleccionada (nivel 2)
+    if (subcategoriaSeleccionada) {
+      filtered = filtered.filter(
+        (product) => product.categoriaEntity?.id === subcategoriaSeleccionada,
+      );
+    }
+    // Filtrar por categoría comercial (nivel 1)
+    else if (selectedCategoryId !== "todos") {
       const categoriaComercial = CATEGORIAS_COMERCIALES.find(
         (c) => c.id === selectedCategoryId,
       );
@@ -296,7 +302,7 @@ function App() {
     }
 
     return filtered;
-  }, [products, selectedCategoryId, searchTerm]);
+  }, [products, selectedCategoryId, subcategoriaSeleccionada, searchTerm]);
 
   // Obtener la macrocategoría actual (para filtrar categorías en ProductCard)
   const currentMacrocategoriaId = useMemo(() => {
@@ -312,6 +318,14 @@ function App() {
     });
     return found?.id || null;
   }, [departments, selectedCategoryId]);
+
+  // Filtrar categorías REALES de la BD por la macrocategoría actual
+  const filteredCategorias = useMemo(() => {
+    if (!currentMacrocategoriaId) return [];
+    return categories.filter(
+      (cat) => cat.departamento?.id === currentMacrocategoriaId,
+    );
+  }, [categories, currentMacrocategoriaId]);
 
   // Encontrar la categoría entity para una familia
   const getCategoriaEntityForFamily = (family) => {
@@ -354,14 +368,18 @@ function App() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-black text-[#121212]">
-              {familiaSeleccionada
-                ? familiaSeleccionada.name
-                : categoriaSeleccionada?.nombre || "Todos los productos"}
+              {(() => {
+                if (subcategoriaSeleccionada) {
+                  const cat = categories.find(
+                    (c) => c.id === subcategoriaSeleccionada,
+                  );
+                  return cat?.nombre;
+                }
+                return categoriaSeleccionada?.nombre || "Todos los productos";
+              })()}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              {familiaSeleccionada
-                ? `${productosFiltrados.length} productos disponibles en esta familia`
-                : `${productosFiltrados.length} productos disponibles`}
+              {`${productosFiltrados.length} productos disponibles`}
             </p>
           </div>
           {isAdminMode && (
@@ -425,25 +443,21 @@ function App() {
           </div>
         )}
 
-        {/* Familias cuando seleccionamos una macrocategoría */}
+        {/* Categorías REALES cuando seleccionamos una macrocategoría */}
         {selectedCategoryId !== "todos" && !subcategoriaSeleccionada && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-            {familiasCategorias.map((family) => {
-              const categoriaEntity = getCategoriaEntityForFamily(family);
-              return (
-                <FamilyCard
-                  key={family.id}
-                  family={family}
-                  categoriaEntity={categoriaEntity}
-                  onSelectFamily={setSubcategoriaSeleccionada}
-                  isAdminMode={isAdminMode}
-                  onEditCategoria={handleEditCategoria}
-                  onDeleteCategoria={handleDeleteCategoria}
-                  onMoverCategoria={handleMoverCategoria}
-                  macrocategorias={departments}
-                />
-              );
-            })}
+            {filteredCategorias.map((categoria) => (
+              <FamilyCard
+                key={categoria.id}
+                categoria={categoria}
+                onSelectFamily={setSubcategoriaSeleccionada}
+                isAdminMode={isAdminMode}
+                onEditCategoria={handleEditCategoria}
+                onDeleteCategoria={handleDeleteCategoria}
+                onMoverCategoria={handleMoverCategoria}
+                macrocategorias={departments}
+              />
+            ))}
           </div>
         )}
 
