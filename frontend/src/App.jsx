@@ -157,6 +157,7 @@ function App() {
 
       if (res.ok) {
         const updated = await res.json();
+        console.log("Categoría actualizada:", updated);
         setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
       } else {
         console.error("Error al actualizar categoría, status:", res.status);

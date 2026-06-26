@@ -1,5 +1,4 @@
 import ProductCard from './ProductCard';
-import { getFamiliesByCategoryId, getProductsByFamilyId } from '../utils/productGrouping';
 
 const ProductGrid = ({ 
   products, 
@@ -16,12 +15,10 @@ const ProductGrid = ({
 }) => {
   console.log("ProductGrid: selectedCategoryId=", selectedCategoryId, "subcategoriaSeleccionada=", subcategoriaSeleccionada);
 
-  // NIVEL 3: Vista de productos de una Familia Maestra
+  // NIVEL 3: Vista de productos de una Categoría de nivel medio
   if (subcategoriaSeleccionada) {
-    console.log("ProductGrid: Renderizando NIVEL 3 - Familia Maestra:", subcategoriaSeleccionada);
-    const productosFamilia = getProductsByFamilyId(products, selectedCategoryId, subcategoriaSeleccionada);
-    const familias = getFamiliesByCategoryId(selectedCategoryId);
-    const familia = familias.find(f => f.id === subcategoriaSeleccionada);
+    console.log("ProductGrid: Renderizando NIVEL 3 - Categoría:", subcategoriaSeleccionada);
+    const categoria = categories.find(c => c.id === subcategoriaSeleccionada);
     
     return (
       <div className="space-y-4">
@@ -41,11 +38,11 @@ const ProductGrid = ({
           Regresar
         </button>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {productosFamilia.map((product) => (
+          {products.map((product) => (
             <ProductCard 
                         key={product.id} 
                         product={product}
-                        familyImage={familia?.image}
+                        familyImage={categoria?.imagenUrl}
                         isAdminMode={isAdminMode}
                         onDeleteProduct={onDeleteProduct}
                         onUpdateProduct={onUpdateProduct}
@@ -60,7 +57,27 @@ const ProductGrid = ({
     );
   }
 
-  // Si no hay subcategoría seleccionada, no renderizar nada (App.jsx ya renderiza las categorías)
+  // NIVEL 2: Vista de productos de una Macrocategoría (sin subcategoría seleccionada)
+  if (selectedCategoryId !== "todos") {
+    return (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {products.map((product) => (
+          <ProductCard 
+                      key={product.id} 
+                      product={product}
+                      isAdminMode={isAdminMode}
+                      onDeleteProduct={onDeleteProduct}
+                      onUpdateProduct={onUpdateProduct}
+                      onSaveProduct={onSaveProduct}
+                      departments={departments}
+                      categories={categories}
+                      currentMacrocategoria={currentMacrocategoria}
+                    />
+        ))}
+      </div>
+    );
+  }
+
   return null;
 };
 
