@@ -63,9 +63,9 @@ public class ProductoController {
     @PostMapping("/productos/assign-excel-to-macrocategoria")
     public ResponseEntity<Map<String, String>> assignExcelToMacrocategoria(@RequestBody Map<String, Object> request) {
         String excelCategoria = request.get("excelCategoria").toString();
-        Long departamentoId = Long.valueOf(request.get("departamentoId").toString());
+        Long macrocategoriaId = Long.valueOf(request.get("macrocategoriaId").toString());
         String categoriaNombre = request.get("categoriaNombre").toString();
-        productoService.assignExcelCategoriaToDepartamento(excelCategoria, departamentoId, categoriaNombre);
+        productoService.assignExcelCategoriaToMacrocategoria(excelCategoria, macrocategoriaId, categoriaNombre);
         Map<String, String> response = new HashMap<>();
         response.put("status", "success");
         response.put("message", "Productos de la etiqueta '" + excelCategoria + "' asignados exitosamente a la categoría '" + categoriaNombre + "'");
@@ -74,14 +74,10 @@ public class ProductoController {
 
     @GetMapping("/productos")
     public ResponseEntity<Page<Producto>> search(
-            @RequestParam(required = false) Long departamentoId,
-            @RequestParam(required = false) Long subcategoriaId,
+            @RequestParam(required = false) Long macrocategoriaId,
             @RequestParam(required = false) String searchTerm,
             @PageableDefault(size = 30) Pageable pageable) {
-        if (subcategoriaId != null) {
-            return ResponseEntity.ok(productoService.searchBySubcategoria(subcategoriaId, searchTerm, pageable));
-        }
-        return ResponseEntity.ok(productoService.search(departamentoId, searchTerm, pageable));
+        return ResponseEntity.ok(productoService.search(macrocategoriaId, searchTerm, pageable));
     }
 
     @DeleteMapping("/admin/cache")
@@ -90,15 +86,6 @@ public class ProductoController {
         Map<String, String> response = new HashMap<>();
         response.put("status", "success");
         response.put("message", "Caché limpiada exitosamente");
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/admin/migrar-productos")
-    public ResponseEntity<Map<String, String>> migrarProductos() {
-        databaseMigration.migrarProductosANuevaRelacion();
-        Map<String, String> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("message", "Migración de productos completada");
         return ResponseEntity.ok(response);
     }
 

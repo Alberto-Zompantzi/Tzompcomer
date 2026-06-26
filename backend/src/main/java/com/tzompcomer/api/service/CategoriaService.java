@@ -1,9 +1,9 @@
 package com.tzompcomer.api.service;
 
 import com.tzompcomer.api.entity.Categoria;
-import com.tzompcomer.api.entity.Departamento;
+import com.tzompcomer.api.entity.Macrocategoria;
 import com.tzompcomer.api.repository.CategoriaRepository;
-import com.tzompcomer.api.repository.DepartamentoRepository;
+import com.tzompcomer.api.repository.MacrocategoriaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +16,7 @@ import java.util.Optional;
 public class CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
-    private final DepartamentoRepository departamentoRepository;
+    private final MacrocategoriaRepository macrocategoriaRepository;
 
     public List<Categoria> findAll() {
         return categoriaRepository.findAll();
@@ -26,15 +26,15 @@ public class CategoriaService {
         return categoriaRepository.findByActivoTrue();
     }
 
-    public List<Categoria> findByDepartamento(Long departamentoId) {
-        return departamentoRepository.findById(departamentoId)
-                .map(categoriaRepository::findByDepartamento)
+    public List<Categoria> findByMacrocategoria(Long macrocategoriaId) {
+        return macrocategoriaRepository.findById(macrocategoriaId)
+                .map(categoriaRepository::findByMacrocategoria)
                 .orElse(List.of());
     }
 
-    public List<Categoria> findActiveByDepartamento(Long departamentoId) {
-        return departamentoRepository.findById(departamentoId)
-                .map(categoriaRepository::findByDepartamentoAndActivoTrue)
+    public List<Categoria> findActiveByMacrocategoria(Long macrocategoriaId) {
+        return macrocategoriaRepository.findById(macrocategoriaId)
+                .map(categoriaRepository::findByMacrocategoriaAndActivoTrue)
                 .orElse(List.of());
     }
 
@@ -59,9 +59,9 @@ public class CategoriaService {
             if (categoriaDetails.getActivo() != null) {
                 categoria.setActivo(categoriaDetails.getActivo());
             }
-            if (categoriaDetails.getDepartamento() != null && categoriaDetails.getDepartamento().getId() != null) {
-                departamentoRepository.findById(categoriaDetails.getDepartamento().getId())
-                        .ifPresent(categoria::setDepartamento);
+            if (categoriaDetails.getMacrocategoria() != null && categoriaDetails.getMacrocategoria().getId() != null) {
+                macrocategoriaRepository.findById(categoriaDetails.getMacrocategoria().getId())
+                        .ifPresent(categoria::setMacrocategoria);
             }
             return categoriaRepository.save(categoria);
         }).orElse(null);
@@ -73,14 +73,14 @@ public class CategoriaService {
     }
 
     @Transactional
-    public Categoria getOrCreateByName(String nombre, Long departamentoId) {
+    public Categoria getOrCreateByName(String nombre, Long macrocategoriaId) {
         Optional<Categoria> existing = categoriaRepository.findByNombre(nombre);
         if (existing.isPresent()) {
             return existing.get();
         }
         Categoria.CategoriaBuilder builder = Categoria.builder().nombre(nombre);
-        if (departamentoId != null) {
-            departamentoRepository.findById(departamentoId).ifPresent(builder::departamento);
+        if (macrocategoriaId != null) {
+            macrocategoriaRepository.findById(macrocategoriaId).ifPresent(builder::macrocategoria);
         }
         return categoriaRepository.save(builder.build());
     }

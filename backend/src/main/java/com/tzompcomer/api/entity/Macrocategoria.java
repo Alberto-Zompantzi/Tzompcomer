@@ -11,12 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "departamentos")
+@Table(name = "macrocategorias")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Departamento {
+public class Macrocategoria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,16 +24,15 @@ public class Departamento {
     @Column(nullable = false, unique = true)
     private String nombre;
 
-    private String identificadorIcono;
-
+    @Column(name = "imagen_url", columnDefinition = "TEXT")
     private String imagenUrl;
 
     @Column(nullable = false)
     @Builder.Default
     private Boolean activo = true;
 
-    @OneToMany(mappedBy = "departamento", cascade = CascadeType.ALL, orphanRemoval = false)
+    @OneToMany(mappedBy = "macrocategoria", cascade = CascadeType.ALL, orphanRemoval = false)
     @Builder.Default
-    @JsonIgnoreProperties("departamento")
+    @JsonIgnoreProperties("macrocategoria")
     private List<Categoria> categorias = new ArrayList<>();
 }

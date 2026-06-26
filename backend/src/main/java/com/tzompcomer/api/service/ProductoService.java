@@ -1,12 +1,11 @@
 package com.tzompcomer.api.service;
 
 import com.tzompcomer.api.entity.Categoria;
-import com.tzompcomer.api.entity.Departamento;
+import com.tzompcomer.api.entity.Macrocategoria;
 import com.tzompcomer.api.entity.Producto;
 import com.tzompcomer.api.repository.CategoriaRepository;
-import com.tzompcomer.api.repository.DepartamentoRepository;
+import com.tzompcomer.api.repository.MacrocategoriaRepository;
 import com.tzompcomer.api.repository.ProductoRepository;
-import com.tzompcomer.api.repository.SubcategoriaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -23,9 +22,8 @@ import java.util.Optional;
 public class ProductoService {
 
     private final ProductoRepository productoRepository;
-    private final DepartamentoRepository departamentoRepository;
+    private final MacrocategoriaRepository macrocategoriaRepository;
     private final CategoriaRepository categoriaRepository;
-    private final SubcategoriaRepository subcategoriaRepository;
 
     public List<Producto> findAll() {
         return productoRepository.findAll();
@@ -46,14 +44,9 @@ public class ProductoService {
         return productoRepository.findVisibleProductos(searchTerm, pageable);
     }
 
-    @Cacheable(value = "productosCache", key = "#departamentoId + '-' + #searchTerm + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
-    public Page<Producto> search(Long departamentoId, String searchTerm, Pageable pageable) {
-        return productoRepository.findByDepartamentoIdAndSearchTerm(departamentoId, searchTerm, pageable);
-    }
-
-    @Cacheable(value = "productosCache", key = "'subcategoria-' + #subcategoriaId + '-' + #searchTerm + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
-    public Page<Producto> searchBySubcategoria(Long subcategoriaId, String searchTerm, Pageable pageable) {
-        return productoRepository.findBySubcategoriaIdAndSearchTerm(subcategoriaId, searchTerm, pageable);
+    @Cacheable(value = "productosCache", key = "#macrocategoriaId + '-' + #searchTerm + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public Page<Producto> search(Long macrocategoriaId, String searchTerm, Pageable pageable) {
+        return productoRepository.findByMacrocategoriaIdAndSearchTerm(macrocategoriaId, searchTerm, pageable);
     }
 
     public List<Producto> searchAll(String searchTerm) {
@@ -89,18 +82,18 @@ public class ProductoService {
 
     @Transactional
     @CacheEvict(value = "productosCache", allEntries = true)
-    public void assignExcelCategoriaToDepartamento(String excelCategoria, Long departamentoId, String categoriaNombre) {
-        Optional<Departamento> departamentoOpt = departamentoRepository.findById(departamentoId);
-        if (departamentoOpt.isEmpty()) {
+    public void assignExcelCategoriaToMacrocategoria(String excelCategoria, Long macrocategoriaId, String categoriaNombre) {
+        Optional<Macrocategoria> macrocategoriaOpt = macrocategoriaRepository.findById(macrocategoriaId);
+        if (macrocategoriaOpt.isEmpty()) {
             return;
         }
-        Departamento departamento = departamentoOpt.get();
+        Macrocategoria macrocategoria = macrocategoriaOpt.get();
 
         // Obtener o crear la categoría (si no existe, la creamos con el nombre dado)
         Categoria categoria = categoriaRepository.findByNombre(categoriaNombre).orElseGet(() -> {
             Categoria nuevaCategoria = Categoria.builder()
                     .nombre(categoriaNombre)
-                    .departamento(departamento)
+                    .macrocategoria(macrocategoria)
                     .activo(true)
                     .build();
             return categoriaRepository.save(nuevaCategoria);
@@ -143,17 +136,9 @@ public class ProductoService {
             if (productoActualizado.getActivo() != null) {
                 existing.setActivo(productoActualizado.getActivo());
             }
-            // Actualizar departamento solo si viene con datos - BUSCAR DE LA BD
-            if (productoActualizado.getDepartamento() != null && productoActualizado.getDepartamento().getId() != null) {
-                departamentoRepository.findById(productoActualizado.getDepartamento().getId()).ifPresent(existing::setDepartamento);
-            }
             // Actualizar categoriaEntity solo si viene con datos - BUSCAR DE LA BD
             if (productoActualizado.getCategoriaEntity() != null && productoActualizado.getCategoriaEntity().getId() != null) {
                 categoriaRepository.findById(productoActualizado.getCategoriaEntity().getId()).ifPresent(existing::setCategoriaEntity);
-            }
-            // Actualizar subcategoria solo si viene con datos - BUSCAR DE LA BD
-            if (productoActualizado.getSubcategoria() != null && productoActualizado.getSubcategoria().getId() != null) {
-                subcategoriaRepository.findById(productoActualizado.getSubcategoria().getId()).ifPresent(existing::setSubcategoria);
             }
             // Guardar y retornar
             return productoRepository.save(existing);

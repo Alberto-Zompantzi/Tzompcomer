@@ -25,40 +25,31 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
            "p.activo = true AND " +
            "p.categoriaEntity IS NOT NULL AND " +
            "p.categoriaEntity.activo = true AND " +
-           "p.categoriaEntity.departamento IS NOT NULL AND " +
-           "p.categoriaEntity.departamento.activo = true")
+           "p.categoriaEntity.macrocategoria IS NOT NULL AND " +
+           "p.categoriaEntity.macrocategoria.activo = true")
     List<Producto> findVisibleProductos();
 
     @Query("SELECT p FROM Producto p WHERE " +
            "p.activo = true AND " +
            "p.categoriaEntity IS NOT NULL AND " +
            "p.categoriaEntity.activo = true AND " +
-           "p.categoriaEntity.departamento IS NOT NULL AND " +
-           "p.categoriaEntity.departamento.activo = true AND " +
+           "p.categoriaEntity.macrocategoria IS NOT NULL AND " +
+           "p.categoriaEntity.macrocategoria.activo = true AND " +
            "(:searchTerm IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
     Page<Producto> findVisibleProductos(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     List<Producto> findByCategoriaEntity(Categoria categoria);
 
     @Query("SELECT p FROM Producto p WHERE " +
-           "LOWER(p.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+           "LOWER(p.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
     List<Producto> searchAllProductos(@Param("searchTerm") String searchTerm);
 
     @Query("SELECT p FROM Producto p WHERE " +
            "p.activo = true AND " +
-           "(:departamentoId IS NULL OR p.departamento.id = :departamentoId) AND " +
+           "(:macrocategoriaId IS NULL OR p.categoriaEntity.macrocategoria.id = :macrocategoriaId) AND " +
            "(:searchTerm IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
-    Page<Producto> findByDepartamentoIdAndSearchTerm(
-            @Param("departamentoId") Long departamentoId, 
-            @Param("searchTerm") String searchTerm, 
-            Pageable pageable);
-
-    @Query("SELECT p FROM Producto p WHERE " +
-           "p.activo = true AND " +
-           "(:subcategoriaId IS NULL OR p.subcategoria.id = :subcategoriaId) AND " +
-           "(:searchTerm IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
-    Page<Producto> findBySubcategoriaIdAndSearchTerm(
-            @Param("subcategoriaId") Long subcategoriaId, 
+    Page<Producto> findByMacrocategoriaIdAndSearchTerm(
+            @Param("macrocategoriaId") Long macrocategoriaId, 
             @Param("searchTerm") String searchTerm, 
             Pageable pageable);
 

@@ -33,12 +33,6 @@ public class Producto {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "departamento_id")
-    @Deprecated
-    @JsonIgnoreProperties("productos")
-    private Departamento departamento;
-
     @Deprecated
     private String categoria;
 
@@ -54,12 +48,7 @@ public class Producto {
     private Boolean activo = true;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "categoria_entity_id") // Nombre de columna que usamos en la migración manual
+    @JoinColumn(name = "categoria_entity_id")
     @JsonIgnoreProperties("productos")
     private Categoria categoriaEntity;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "subcategoria_id")
-    @JsonIgnoreProperties("productos")
-    private Subcategoria subcategoria;
 }

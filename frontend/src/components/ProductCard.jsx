@@ -8,7 +8,7 @@ const ProductCard = ({
   isAdminMode, 
   onDeleteProduct, 
   onUpdateProduct, 
-  departments, 
+  macrocategorias, 
   categories, 
   onSaveProduct,
   currentMacrocategoria
@@ -30,7 +30,7 @@ const ProductCard = ({
 
   // Filtrar categorías solo para la macrocategoría actual
   const relevantCategories = currentMacrocategoria 
-    ? categories.filter(cat => cat.departamento?.id === currentMacrocategoria)
+    ? categories.filter(cat => cat.macrocategoria?.id === currentMacrocategoria)
     : categories;
 
   // Reset form when product changes

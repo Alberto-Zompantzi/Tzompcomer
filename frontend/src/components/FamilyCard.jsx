@@ -13,29 +13,29 @@ const FamilyCard = ({
   const [editando, setEditando] = useState(false);
   const [formData, setFormData] = useState({
     nombre: categoria.nombre,
-    imagenUrl: categoria.imagenUrl || '',
+    imagenUrl: categoria.imagenUrl || "",
     activo: categoria.activo,
-    departamentoId: categoria.departamento?.id
+    macrocategoriaId: categoria.macrocategoria?.id,
   });
   const [originalData, setOriginalData] = useState({
     nombre: categoria.nombre,
-    imagenUrl: categoria.imagenUrl || '',
+    imagenUrl: categoria.imagenUrl || "",
     activo: categoria.activo,
-    departamentoId: categoria.departamento?.id
+    macrocategoriaId: categoria.macrocategoria?.id,
   });
-  const [moverCategoria, setMoverCategoria] = useState(categoria.departamento?.id);
+  const [moverCategoria, setMoverCategoria] = useState(categoria.macrocategoria?.id);
 
   // Reset form when categoria changes
   useEffect(() => {
     const newData = {
       nombre: categoria.nombre,
-      imagenUrl: categoria.imagenUrl || '',
+      imagenUrl: categoria.imagenUrl || "",
       activo: categoria.activo,
-      departamentoId: categoria.departamento?.id
+      macrocategoriaId: categoria.macrocategoria?.id,
     };
     setFormData(newData);
     setOriginalData(newData);
-    setMoverCategoria(categoria.departamento?.id);
+    setMoverCategoria(categoria.macrocategoria?.id);
   }, [categoria]);
 
   const handleEditClick = (e) => {

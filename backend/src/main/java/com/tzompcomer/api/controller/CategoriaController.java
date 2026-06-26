@@ -26,14 +26,14 @@ public class CategoriaController {
         return ResponseEntity.ok(categoriaService.findActive());
     }
 
-    @GetMapping("/departamento/{departamentoId}")
-    public ResponseEntity<List<Categoria>> getByDepartamento(@PathVariable Long departamentoId) {
-        return ResponseEntity.ok(categoriaService.findByDepartamento(departamentoId));
+    @GetMapping("/macrocategoria/{macrocategoriaId}")
+    public ResponseEntity<List<Categoria>> getByMacrocategoria(@PathVariable Long macrocategoriaId) {
+        return ResponseEntity.ok(categoriaService.findByMacrocategoria(macrocategoriaId));
     }
 
-    @GetMapping("/departamento/{departamentoId}/active")
-    public ResponseEntity<List<Categoria>> getActiveByDepartamento(@PathVariable Long departamentoId) {
-        return ResponseEntity.ok(categoriaService.findActiveByDepartamento(departamentoId));
+    @GetMapping("/macrocategoria/{macrocategoriaId}/active")
+    public ResponseEntity<List<Categoria>> getActiveByMacrocategoria(@PathVariable Long macrocategoriaId) {
+        return ResponseEntity.ok(categoriaService.findActiveByMacrocategoria(macrocategoriaId));
     }
 
     @GetMapping("/{id}")

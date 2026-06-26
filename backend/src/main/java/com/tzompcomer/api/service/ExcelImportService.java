@@ -1,8 +1,6 @@
 package com.tzompcomer.api.service;
 
-import com.tzompcomer.api.entity.Departamento;
 import com.tzompcomer.api.entity.Producto;
-import com.tzompcomer.api.repository.DepartamentoRepository;
 import com.tzompcomer.api.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +20,6 @@ import java.util.*;
 public class ExcelImportService {
 
     private final ProductoRepository productoRepository;
-    private final DepartamentoRepository departamentoRepository;
 
     private static final int BATCH_SIZE = 100;
 
@@ -37,11 +34,10 @@ public class ExcelImportService {
         int created = 0;
         int updated = 0;
 
-        // BORRAR TODOS LOS DATOS ANTERIORES
-        log.info("Borrando productos y departamentos antiguos...");
+        // BORRAR TODOS LOS DATOS ANTERIORES (solo productos, macrocategorías y categorías se mantienen)
+        log.info("Borrando productos antiguos...");
         productoRepository.deleteAll();
-        departamentoRepository.deleteAll();
-        log.info("Base de datos limpiada correctamente!");
+        log.info("Productos eliminados correctamente!");
 
         try (Workbook workbook = WorkbookFactory.create(is)) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -51,14 +47,7 @@ public class ExcelImportService {
                 rows.next(); // Saltar encabezados
             }
 
-            // 1. Cargar todos los departamentos a un Map para evitar consultas repetitivas
-            Map<String, Departamento> departamentoMap = new HashMap<>();
-            List<Departamento> allDepartamentos = departamentoRepository.findAll();
-            for (Departamento d : allDepartamentos) {
-                departamentoMap.put(d.getNombre().toLowerCase().trim(), d);
-            }
-
-            // 2. Cargar todos los productos existentes por SKU para upsert eficiente
+            // 1. Cargar todos los productos existentes por SKU para upsert eficiente
             Map<String, Producto> existingProductosMap = new HashMap<>();
             List<Producto> allProductos = productoRepository.findAll();
             for (Producto p : allProductos) {
@@ -96,27 +85,17 @@ public class ExcelImportService {
                     boolean disponible = inventario != null && inventario.compareTo(BigDecimal.ZERO) > 0;
 
                     // Columna 6: Inv. Minimo → ignorar
-                    // Columna 7: Departamento → relación
-                    String departamentoNombre = getCellValueAsString(currentRow.getCell(7));
-                    if (departamentoNombre == null || departamentoNombre.trim().isEmpty()) {
-                        departamentoNombre = "General";
+                    // Columna 7: Departamento → guardar como etiqueta (categoria)
+                    String categoriaNombre = getCellValueAsString(currentRow.getCell(7));
+                    if (categoriaNombre == null || categoriaNombre.trim().isEmpty()) {
+                        categoriaNombre = "General";
                     }
-                    departamentoNombre = departamentoNombre.toLowerCase().trim();
-
-                    // Obtener o crear departamento
-                    Departamento departamento = departamentoMap.get(departamentoNombre);
-                    if (departamento == null) {
-                        departamento = new Departamento();
-                        departamento.setNombre(departamentoNombre.substring(0, 1).toUpperCase() + departamentoNombre.substring(1));
-                        departamento.setIdentificadorIcono(departamentoNombre);
-                        departamento = departamentoRepository.save(departamento);
-                        departamentoMap.put(departamentoNombre, departamento);
-                    }
+                    categoriaNombre = categoriaNombre.toLowerCase().trim();
 
                     // Columna 8: Imagen URL (opcional)
                     String imagenUrl = getCellValueAsString(currentRow.getCell(8));
                     if (imagenUrl == null || imagenUrl.trim().isEmpty()) {
-                        imagenUrl = departamentoNombre;
+                        imagenUrl = categoriaNombre;
                     }
 
                     // Lógica: crear nuevos productos (todo es nuevo porque borramos todo antes!
@@ -125,9 +104,8 @@ public class ExcelImportService {
                             .nombre(nombre)
                             .descripcion(descripcion)
                             .precio(precio)
-                            .departamento(departamento)
                             .disponible(disponible)
-                            .categoria(departamentoNombre)
+                            .categoria(categoriaNombre)
                             .imagenUrl(imagenUrl)
                             .build();
                     created++;

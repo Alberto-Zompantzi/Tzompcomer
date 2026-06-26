@@ -24,7 +24,7 @@ const AdminPanel = ({ onImportComplete }) => {
   // Estados para Categorías
   const [categorias, setCategorias] = useState([]);
   const [editingCategoria, setEditingCategoria] = useState(null);
-  const [categoriaForm, setCategoriaForm] = useState({ nombre: '', imagenUrl: '', activo: true, departamentoId: '' });
+  const [categoriaForm, setCategoriaForm] = useState({ nombre: '', imagenUrl: '', activo: true, macrocategoriaId: '' });
   const [selectedCategoriaForAssignment, setSelectedCategoriaForAssignment] = useState(null);
   const [searchProductoIndividual, setSearchProductoIndividual] = useState('');
 
@@ -124,7 +124,7 @@ const AdminPanel = ({ onImportComplete }) => {
   // --- Funciones para Macrocategorías ---
   const fetchMacrocategorias = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/departamentos`);
+      const res = await fetch(`${API_BASE_URL}/macrocategorias`);
       const data = await res.json();
       setMacrocategorias(data);
     } catch (err) {
@@ -136,13 +136,13 @@ const AdminPanel = ({ onImportComplete }) => {
     e.preventDefault();
     try {
       if (editingMacrocategoria) {
-        await fetch(`${API_BASE_URL}/departamentos/${editingMacrocategoria.id}`, {
+        await fetch(`${API_BASE_URL}/macrocategorias/${editingMacrocategoria.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(macrocategoriaForm)
         });
       } else {
-        await fetch(`${API_BASE_URL}/departamentos`, {
+        await fetch(`${API_BASE_URL}/macrocategorias`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(macrocategoriaForm)
@@ -159,7 +159,7 @@ const AdminPanel = ({ onImportComplete }) => {
   const handleDeleteMacrocategoria = async (id) => {
     if (confirm('¿Seguro que quieres eliminar esta macrocategoría?')) {
       try {
-        await fetch(`${API_BASE_URL}/departamentos/${id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE_URL}/macrocategorias/${id}`, { method: 'DELETE' });
         fetchMacrocategorias();
       } catch (err) {
         console.error(err);
@@ -183,7 +183,7 @@ const AdminPanel = ({ onImportComplete }) => {
     try {
       const payload = {
         ...categoriaForm,
-        departamento: categoriaForm.departamentoId ? { id: Number(categoriaForm.departamentoId) } : null
+        macrocategoria: categoriaForm.macrocategoriaId ? { id: Number(categoriaForm.macrocategoriaId) } : null
       };
       if (editingCategoria) {
         await fetch(`${API_BASE_URL}/categorias/${editingCategoria.id}`, {
@@ -201,7 +201,7 @@ const AdminPanel = ({ onImportComplete }) => {
       fetchCategorias();
       fetchMacrocategorias();
       setEditingCategoria(null);
-      setCategoriaForm({ nombre: '', imagenUrl: '', activo: true, departamentoId: '' });
+      setCategoriaForm({ nombre: '', imagenUrl: '', activo: true, macrocategoriaId: '' });
     } catch (err) {
       console.error(err);
     }
@@ -383,7 +383,7 @@ const AdminPanel = ({ onImportComplete }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           excelCategoria: excelCategoriaSeleccionada,
-          departamentoId: Number(macrocategoriaId),
+          macrocategoriaId: Number(macrocategoriaId),
           categoriaNombre: categoriaNombre
         })
       });
@@ -793,8 +793,8 @@ const AdminPanel = ({ onImportComplete }) => {
                 <form onSubmit={handleSaveCategoria} className="bg-gray-50 p-6 rounded-2xl space-y-4">
                   <h3 className="font-black text-gray-900 text-lg">{editingCategoria ? 'Editar Categoría' : 'Agregar Categoría'}</h3>
                   <select
-                    value={categoriaForm.departamentoId}
-                    onChange={(e) => setCategoriaForm({ ...categoriaForm, departamentoId: e.target.value })}
+                    value={categoriaForm.macrocategoriaId}
+                    onChange={(e) => setCategoriaForm({ ...categoriaForm, macrocategoriaId: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
                     required
                   >
@@ -830,7 +830,7 @@ const AdminPanel = ({ onImportComplete }) => {
                   <div className="flex gap-3">
                     <button type="submit" className="flex-1 bg-[#0033A0] text-white py-3 rounded-xl font-bold">Guardar</button>
                     {editingCategoria && (
-                      <button type="button" onClick={() => { setEditingCategoria(null); setCategoriaForm({ nombre: '', imagenUrl: '', activo: true, departamentoId: '' }); }} className="px-6 py-3 border border-gray-300 rounded-xl font-semibold">Cancelar</button>
+                      <button type="button" onClick={() => { setEditingCategoria(null); setCategoriaForm({ nombre: '', imagenUrl: '', activo: true, macrocategoriaId: '' }); }} className="px-6 py-3 border border-gray-300 rounded-xl font-semibold">Cancelar</button>
                     )}
                   </div>
                 </form>
@@ -846,7 +846,7 @@ const AdminPanel = ({ onImportComplete }) => {
                         <div>
                           <h4 className="font-black text-gray-900 text-lg">{categoria.nombre}</h4>
                           <p className="text-sm text-gray-500">
-                            {categoria.departamento ? `Macrocategoría: ${categoria.departamento.nombre}` : 'Sin macrocategoría'}
+                            {categoria.macrocategoria ? `Macrocategoría: ${categoria.macrocategoria.nombre}` : 'Sin macrocategoría'}
                           </p>
                           <span className={`text-xs px-2 py-1 rounded-full font-semibold mt-1 inline-block ${categoria.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                             {categoria.activo ? 'Activo' : 'Inactivo'}
@@ -870,7 +870,7 @@ const AdminPanel = ({ onImportComplete }) => {
                             nombre: categoria.nombre, 
                             imagenUrl: categoria.imagenUrl || '', 
                             activo: categoria.activo,
-                            departamentoId: categoria.departamento?.id || '' 
+                            macrocategoriaId: categoria.macrocategoria?.id || '' 
                           }); 
                         }} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold">Editar</button>
                         <button onClick={() => handleDeleteCategoria(categoria.id)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold">Eliminar</button>

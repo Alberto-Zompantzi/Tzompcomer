@@ -25,7 +25,7 @@ const PASSWORD_ADMIN_SECRETA = "TzompAdmin2026!";
 function App() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [departments, setDepartments] = useState([]);
+  const [macrocategorias, setMacrocategorias] = useState([]);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("todos");
@@ -114,13 +114,15 @@ function App() {
 
   const handleEditMacrocategoria = async (id, data) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/departamentos/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/macrocategorias/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       const updated = await res.json();
-      setDepartments((prev) => prev.map((d) => (d.id === id ? updated : d)));
+      setMacrocategorias((prev) =>
+        prev.map((d) => (d.id === id ? updated : d)),
+      );
     } catch (err) {
       console.error("Error updating macrocategoría:", err);
     }
@@ -128,10 +130,10 @@ function App() {
 
   const handleDeleteMacrocategoria = async (id) => {
     try {
-      await fetch(`${API_BASE_URL}/departamentos/${id}`, {
+      await fetch(`${API_BASE_URL}/macrocategorias/${id}`, {
         method: "DELETE",
       });
-      setDepartments((prev) => prev.filter((d) => d.id !== id));
+      setMacrocategorias((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
       console.error("Error deleting macrocategoría:", err);
     }
@@ -144,8 +146,8 @@ function App() {
         nombre: data.nombre,
         imagenUrl: data.imagenUrl,
         activo: data.activo,
-        departamento: data.departamentoId
-          ? { id: parseInt(data.departamentoId) }
+        macrocategoria: data.macrocategoriaId
+          ? { id: parseInt(data.macrocategoriaId) }
           : null,
       };
 
@@ -178,13 +180,13 @@ function App() {
     }
   };
 
-  const handleMoverCategoria = async (id, departamentoId) => {
+  const handleMoverCategoria = async (id, macrocategoriaId) => {
     try {
       const res = await fetch(`${API_BASE_URL}/categorias/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          departamento: { id: parseInt(departamentoId) },
+          macrocategoria: { id: parseInt(macrocategoriaId) },
         }),
       });
 
@@ -202,21 +204,22 @@ function App() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [departmentsRes, categoriesRes, productsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/departamentos`),
-        fetch(`${API_BASE_URL}/categorias`),
-        fetch(`${API_BASE_URL}/productos/visible`),
-      ]);
+      const [macrocategoriasRes, categoriesRes, productsRes] =
+        await Promise.all([
+          fetch(`${API_BASE_URL}/macrocategorias`),
+          fetch(`${API_BASE_URL}/categorias`),
+          fetch(`${API_BASE_URL}/productos/visible`),
+        ]);
 
-      if (!departmentsRes.ok || !productsRes.ok || !categoriesRes.ok) {
+      if (!macrocategoriasRes.ok || !productsRes.ok || !categoriesRes.ok) {
         throw new Error("Error al cargar los datos");
       }
 
-      const departmentsData = await departmentsRes.json();
+      const macrocategoriasData = await macrocategoriasRes.json();
       const categoriesData = await categoriesRes.json();
       const productsData = await productsRes.json();
 
-      setDepartments(departmentsData);
+      setMacrocategorias(macrocategoriasData);
       setCategories(categoriesData);
       setProducts(productsData);
     } catch (err) {
@@ -224,7 +227,7 @@ function App() {
       setError(
         "No se pudieron cargar los datos. Por favor, verifica que el backend esté corriendo.",
       );
-      setDepartments([]);
+      setMacrocategorias([]);
       setCategories([]);
       setProducts([]);
     } finally {
@@ -272,19 +275,12 @@ function App() {
       );
       if (categoriaComercial) {
         filtered = filtered.filter((product) => {
-          // Primero intentar usar la relación nueva (categoriaEntity.departamento)
-          if (product.categoriaEntity?.departamento?.nombre) {
+          // Usar la relación macrocategoria
+          if (product.categoriaEntity?.macrocategoria?.nombre) {
             const nombreMacro =
-              product.categoriaEntity.departamento.nombre.toLowerCase();
+              product.categoriaEntity.macrocategoria.nombre.toLowerCase();
             return categoriaComercial.departamentos.some((dept) =>
               nombreMacro.includes(dept.toLowerCase()),
-            );
-          }
-          // Si no existe la relación nueva, usar la relación antigua (departamento)
-          if (product.departamento?.nombre) {
-            const nombreDept = product.departamento.nombre.toLowerCase();
-            return categoriaComercial.departamentos.some((dept) =>
-              nombreDept.includes(dept.toLowerCase()),
             );
           }
           return false;
@@ -309,7 +305,7 @@ function App() {
   const currentMacrocategoriaId = useMemo(() => {
     if (selectedCategoryId === "todos") return null;
     // Encontrar la macrocategoría correspondiente al selectedCategoryId
-    const found = departments.find((d) => {
+    const found = macrocategorias.find((d) => {
       const cat = CATEGORIAS_COMERCIALES.find(
         (c) => c.id === selectedCategoryId,
       );
@@ -318,13 +314,13 @@ function App() {
       );
     });
     return found?.id || null;
-  }, [departments, selectedCategoryId]);
+  }, [macrocategorias, selectedCategoryId]);
 
   // Filtrar categorías REALES de la BD por la macrocategoría actual
   const filteredCategorias = useMemo(() => {
     if (!currentMacrocategoriaId) return [];
     return categories.filter(
-      (cat) => cat.departamento?.id === currentMacrocategoriaId,
+      (cat) => cat.macrocategoria?.id === currentMacrocategoriaId,
     );
   }, [categories, currentMacrocategoriaId]);
 
@@ -401,7 +397,7 @@ function App() {
         {/* Macrocategorías en la página principal */}
         {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {departments.map((dept) => (
+            {macrocategorias.map((dept) => (
               <HomeCategoryCard
                 key={dept.id}
                 id={dept.id}
@@ -456,7 +452,7 @@ function App() {
                 onEditCategoria={handleEditCategoria}
                 onDeleteCategoria={handleDeleteCategoria}
                 onMoverCategoria={handleMoverCategoria}
-                macrocategorias={departments}
+                macrocategorias={macrocategorias}
               />
             ))}
           </div>
@@ -490,7 +486,7 @@ function App() {
             onDeleteProduct={handleDeleteProduct}
             onUpdateProduct={handleUpdateProduct}
             onSaveProduct={handleSaveProduct}
-            departments={departments}
+            macrocategorias={macrocategorias}
             categories={categories}
             onSelectCategory={handleCategoryChange}
             currentMacrocategoria={currentMacrocategoriaId}

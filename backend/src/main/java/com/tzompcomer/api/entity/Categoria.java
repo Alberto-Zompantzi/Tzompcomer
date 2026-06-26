@@ -33,9 +33,9 @@ public class Categoria {
     private Boolean activo = true;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "departamento_id")
+    @JoinColumn(name = "macrocategoria_id")
     @JsonIgnoreProperties("categorias")
-    private Departamento departamento;
+    private Macrocategoria macrocategoria;
 
     @OneToMany(mappedBy = "categoriaEntity", cascade = CascadeType.ALL, orphanRemoval = false)
     @Builder.Default

@@ -9,7 +9,7 @@ const ProductGrid = ({
   onDeleteProduct, 
   onUpdateProduct, 
   onSaveProduct,
-  departments,
+  macrocategorias,
   categories,
   currentMacrocategoria
 }) => {
@@ -39,15 +39,15 @@ const ProductGrid = ({
         </button>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {products.map((product) => (
-            <ProductCard 
-                        key={product.id} 
+            <ProductCard
+                        key={product.id}
                         product={product}
                         familyImage={categoria?.imagenUrl}
                         isAdminMode={isAdminMode}
                         onDeleteProduct={onDeleteProduct}
                         onUpdateProduct={onUpdateProduct}
                         onSaveProduct={onSaveProduct}
-                        departments={departments}
+                        macrocategorias={macrocategorias}
                         categories={categories}
                         currentMacrocategoria={currentMacrocategoria}
                       />
@@ -62,17 +62,17 @@ const ProductGrid = ({
     return (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {products.map((product) => (
-          <ProductCard 
-                      key={product.id} 
-                      product={product}
-                      isAdminMode={isAdminMode}
-                      onDeleteProduct={onDeleteProduct}
-                      onUpdateProduct={onUpdateProduct}
-                      onSaveProduct={onSaveProduct}
-                      departments={departments}
-                      categories={categories}
-                      currentMacrocategoria={currentMacrocategoria}
-                    />
+          <ProductCard
+                        key={product.id}
+                        product={product}
+                        isAdminMode={isAdminMode}
+                        onDeleteProduct={onDeleteProduct}
+                        onUpdateProduct={onUpdateProduct}
+                        onSaveProduct={onSaveProduct}
+                        macrocategorias={macrocategorias}
+                        categories={categories}
+                        currentMacrocategoria={currentMacrocategoria}
+                      />
         ))}
       </div>
     );
