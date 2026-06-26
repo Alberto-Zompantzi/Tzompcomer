@@ -2,7 +2,17 @@ import { useState, useEffect } from 'react';
 import useCartStore from '../store/useCartStore';
 import { FALLBACK_IMAGE } from '../utils/productGrouping';
 
-const ProductCard = ({ product, familyImage, isAdminMode, onDeleteProduct, onUpdateProduct, departments, categories, onSaveProduct }) => {
+const ProductCard = ({ 
+  product, 
+  familyImage, 
+  isAdminMode, 
+  onDeleteProduct, 
+  onUpdateProduct, 
+  departments, 
+  categories, 
+  onSaveProduct,
+  currentMacrocategoria
+}) => {
   const { addToCart } = useCartStore();
   const [isHovered, setIsHovered] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
@@ -17,6 +27,11 @@ const ProductCard = ({ product, familyImage, isAdminMode, onDeleteProduct, onUpd
     precio: product.precio,
     imagenUrl: product.imagenUrl || ''
   });
+
+  // Filtrar categorías solo para la macrocategoría actual
+  const relevantCategories = currentMacrocategoria 
+    ? categories.filter(cat => cat.departamento?.id === currentMacrocategoria)
+    : categories;
 
   // Reset form when product changes
   useEffect(() => {

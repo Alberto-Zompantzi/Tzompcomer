@@ -38,7 +38,8 @@ const ProductGrid = ({
   onUpdateProduct, 
   onSaveProduct,
   departments,
-  categories 
+  categories,
+  currentMacrocategoria
 }) => {
   console.log("ProductGrid: selectedCategoryId=", selectedCategoryId, "subcategoriaSeleccionada=", subcategoriaSeleccionada);
 
@@ -96,6 +97,7 @@ const ProductGrid = ({
                         onSaveProduct={onSaveProduct}
                         departments={departments}
                         categories={categories}
+                        currentMacrocategoria={currentMacrocategoria}
                       />
           ))}
         </div>

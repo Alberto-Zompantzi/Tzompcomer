@@ -14,6 +14,8 @@ import Locations from "./components/Locations";
 import Footer from "./components/Footer";
 import AdminPanel from "./components/AdminPanel";
 import StarProductsBanner from "./components/StarProductsBanner";
+import HomeCategoryCard from "./components/HomeCategoryCard";
+import FamilyCard from "./components/FamilyCard";
 import useCartStore from "./store/useCartStore";
 
 const API_BASE_URL =
@@ -110,12 +112,76 @@ function App() {
     }
   };
 
+  const handleEditMacrocategoria = async (id, data) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/departamentos/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const updated = await res.json();
+      setDepartments((prev) => prev.map(d => d.id === id ? updated : d));
+    } catch (err) {
+      console.error("Error updating macrocategoría:", err);
+    }
+  };
+
+  const handleDeleteMacrocategoria = async (id) => {
+    try {
+      await fetch(`${API_BASE_URL}/departamentos/${id}`, {
+        method: "DELETE",
+      });
+      setDepartments((prev) => prev.filter(d => d.id !== id));
+    } catch (err) {
+      console.error("Error deleting macrocategoría:", err);
+    }
+  };
+
+  const handleEditCategoria = async (id, data) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/categorias/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const updated = await res.json();
+      setCategories((prev) => prev.map(c => c.id === id ? updated : c));
+    } catch (err) {
+      console.error("Error updating categoría:", err);
+    }
+  };
+
+  const handleDeleteCategoria = async (id) => {
+    try {
+      await fetch(`${API_BASE_URL}/categorias/${id}`, {
+        method: "DELETE",
+      });
+      setCategories((prev) => prev.filter(c => c.id !== id));
+    } catch (err) {
+      console.error("Error deleting categoría:", err);
+    }
+  };
+
+  const handleMoverCategoria = async (id, departamentoId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/categorias/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ departamentoId }),
+      });
+      const updated = await res.json();
+      setCategories((prev) => prev.map(c => c.id === id ? updated : c));
+    } catch (err) {
+      console.error("Error moving categoría:", err);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
       const [departmentsRes, categoriesRes, productsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/departamentos/active`),
-        fetch(`${API_BASE_URL}/categorias/active`),
+        fetch(`${API_BASE_URL}/departamentos`),
+        fetch(`${API_BASE_URL}/categorias`),
         fetch(`${API_BASE_URL}/productos/visible`),
       ]);
 
@@ -209,6 +275,27 @@ function App() {
     return filtered;
   }, [products, selectedCategoryId, searchTerm]);
 
+  // Obtener la macrocategoría actual (para filtrar categorías en ProductCard)
+  const currentMacrocategoriaId = useMemo(() => {
+    if (selectedCategoryId === "todos") return null;
+    // Encontrar la macrocategoría correspondiente al selectedCategoryId
+    const found = departments.find(d => {
+      const cat = CATEGORIAS_COMERCIALES.find(c => c.id === selectedCategoryId);
+      return cat?.departamentos.some(dept => 
+        d.nombre.toLowerCase().includes(dept.toLowerCase())
+      );
+    });
+    return found?.id || null;
+  }, [departments, selectedCategoryId]);
+
+  // Encontrar la categoría entity para una familia
+  const getCategoriaEntityForFamily = (family) => {
+    return categories.find(cat => 
+      cat.nombre.toLowerCase().includes(family.name.toLowerCase()) ||
+      family.name.toLowerCase().includes(cat.nombre.toLowerCase())
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
@@ -266,6 +353,64 @@ function App() {
           )}
         </div>
 
+        {/* Macrocategorías en la página principal */}
+        {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {departments.map((dept) => (
+              <HomeCategoryCard
+                key={dept.id}
+                id={dept.id}
+                name={dept.nombre}
+                image={(() => {
+                  const catComercial = CATEGORIAS_COMERCIALES.find(cat => 
+                    cat.departamentos.some(d => dept.nombre.toLowerCase().includes(d.toLowerCase()))
+                  );
+                  if (catComercial?.id && CATEGORIA_MAPPING[catComercial.id]) {
+                    return CATEGORIA_MAPPING[catComercial.id].image;
+                  }
+                  return CATEGORIA_MAPPING["desechables-envases"].image;
+                })()}
+                identificadorIcono={dept.identificadorIcono}
+                activo={dept.activo}
+                onSelectCategory={() => {
+                  // Encontrar el ID de categoría comercial correspondiente
+                  const catComercial = CATEGORIAS_COMERCIALES.find(cat =>
+                    cat.departamentos.some(d => dept.nombre.toLowerCase().includes(d.toLowerCase()))
+                  );
+                  if (catComercial) {
+                    handleCategoryChange(catComercial.id);
+                  }
+                }}
+                isAdminMode={isAdminMode}
+                onEditMacrocategoria={handleEditMacrocategoria}
+                onDeleteMacrocategoria={handleDeleteMacrocategoria}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Familias cuando seleccionamos una macrocategoría */}
+        {selectedCategoryId !== "todos" && !subcategoriaSeleccionada && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+            {familiasCategorias.map((family) => {
+              const categoriaEntity = getCategoriaEntityForFamily(family);
+              return (
+                <FamilyCard
+                  key={family.id}
+                  family={family}
+                  categoriaEntity={categoriaEntity}
+                  onSelectFamily={setSubcategoriaSeleccionada}
+                  isAdminMode={isAdminMode}
+                  onEditCategoria={handleEditCategoria}
+                  onDeleteCategoria={handleDeleteCategoria}
+                  onMoverCategoria={handleMoverCategoria}
+                  macrocategorias={departments}
+                />
+              );
+            })}
+          </div>
+        )}
+
         {/* Product Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -286,18 +431,19 @@ function App() {
           </div>
         ) : (
           <ProductGrid
-                    products={productosFiltrados}
-                    selectedCategoryId={selectedCategoryId}
-                    subcategoriaSeleccionada={subcategoriaSeleccionada}
-                    onSelectFamily={setSubcategoriaSeleccionada}
-                    isAdminMode={isAdminMode}
-                    onDeleteProduct={handleDeleteProduct}
-                    onUpdateProduct={handleUpdateProduct}
-                    onSaveProduct={handleSaveProduct}
-                    departments={departments}
-                    categories={categories}
-                    onSelectCategory={handleCategoryChange}
-                  />
+            products={productosFiltrados}
+            selectedCategoryId={selectedCategoryId}
+            subcategoriaSeleccionada={subcategoriaSeleccionada}
+            onSelectFamily={setSubcategoriaSeleccionada}
+            isAdminMode={isAdminMode}
+            onDeleteProduct={handleDeleteProduct}
+            onUpdateProduct={handleUpdateProduct}
+            onSaveProduct={handleSaveProduct}
+            departments={departments}
+            categories={categories}
+            onSelectCategory={handleCategoryChange}
+            currentMacrocategoria={currentMacrocategoriaId}
+          />
         )}
       </main>
 
