@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FALLBACK_IMAGE } from '../utils/productGrouping';
 
 const HomeCategoryCard = ({ 
@@ -25,6 +25,18 @@ const HomeCategoryCard = ({
     imagenUrl: image || '',
     activo: activo !== false ? true : false
   });
+
+  // Reset form when props change
+  useEffect(() => {
+    const newData = {
+      nombre: name,
+      identificadorIcono: identificadorIcono || '',
+      imagenUrl: image || '',
+      activo: activo !== false ? true : false
+    };
+    setFormData(newData);
+    setOriginalData(newData);
+  }, [name, image, identificadorIcono, activo]);
 
   const handleEditClick = (e) => {
     e.stopPropagation();

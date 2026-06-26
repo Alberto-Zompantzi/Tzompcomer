@@ -120,7 +120,7 @@ function App() {
         body: JSON.stringify(data),
       });
       const updated = await res.json();
-      setDepartments((prev) => prev.map(d => d.id === id ? updated : d));
+      setDepartments((prev) => prev.map((d) => (d.id === id ? updated : d)));
     } catch (err) {
       console.error("Error updating macrocategoría:", err);
     }
@@ -131,7 +131,7 @@ function App() {
       await fetch(`${API_BASE_URL}/departamentos/${id}`, {
         method: "DELETE",
       });
-      setDepartments((prev) => prev.filter(d => d.id !== id));
+      setDepartments((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
       console.error("Error deleting macrocategoría:", err);
     }
@@ -139,13 +139,28 @@ function App() {
 
   const handleEditCategoria = async (id, data) => {
     try {
+      // Preparamos el cuerpo con la estructura correcta para el backend
+      const body = {
+        nombre: data.nombre,
+        imagenUrl: data.imagenUrl,
+        activo: data.activo,
+        departamento: data.departamentoId
+          ? { id: parseInt(data.departamentoId) }
+          : null,
+      };
+
       const res = await fetch(`${API_BASE_URL}/categorias/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
       });
-      const updated = await res.json();
-      setCategories((prev) => prev.map(c => c.id === id ? updated : c));
+
+      if (res.ok) {
+        const updated = await res.json();
+        setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      } else {
+        console.error("Error al actualizar categoría, status:", res.status);
+      }
     } catch (err) {
       console.error("Error updating categoría:", err);
     }
@@ -156,7 +171,7 @@ function App() {
       await fetch(`${API_BASE_URL}/categorias/${id}`, {
         method: "DELETE",
       });
-      setCategories((prev) => prev.filter(c => c.id !== id));
+      setCategories((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       console.error("Error deleting categoría:", err);
     }
@@ -167,10 +182,17 @@ function App() {
       const res = await fetch(`${API_BASE_URL}/categorias/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ departamentoId }),
+        body: JSON.stringify({
+          departamento: { id: parseInt(departamentoId) },
+        }),
       });
-      const updated = await res.json();
-      setCategories((prev) => prev.map(c => c.id === id ? updated : c));
+
+      if (res.ok) {
+        const updated = await res.json();
+        setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      } else {
+        console.error("Error al mover categoría, status:", res.status);
+      }
     } catch (err) {
       console.error("Error moving categoría:", err);
     }
@@ -245,16 +267,17 @@ function App() {
         filtered = filtered.filter((product) => {
           // Primero intentar usar la relación nueva (categoriaEntity.departamento)
           if (product.categoriaEntity?.departamento?.nombre) {
-            const nombreMacro = product.categoriaEntity.departamento.nombre.toLowerCase();
-            return categoriaComercial.departamentos.some((dept) => 
-              nombreMacro.includes(dept.toLowerCase())
+            const nombreMacro =
+              product.categoriaEntity.departamento.nombre.toLowerCase();
+            return categoriaComercial.departamentos.some((dept) =>
+              nombreMacro.includes(dept.toLowerCase()),
             );
           }
           // Si no existe la relación nueva, usar la relación antigua (departamento)
           if (product.departamento?.nombre) {
             const nombreDept = product.departamento.nombre.toLowerCase();
-            return categoriaComercial.departamentos.some((dept) => 
-              nombreDept.includes(dept.toLowerCase())
+            return categoriaComercial.departamentos.some((dept) =>
+              nombreDept.includes(dept.toLowerCase()),
             );
           }
           return false;
@@ -279,10 +302,12 @@ function App() {
   const currentMacrocategoriaId = useMemo(() => {
     if (selectedCategoryId === "todos") return null;
     // Encontrar la macrocategoría correspondiente al selectedCategoryId
-    const found = departments.find(d => {
-      const cat = CATEGORIAS_COMERCIALES.find(c => c.id === selectedCategoryId);
-      return cat?.departamentos.some(dept => 
-        d.nombre.toLowerCase().includes(dept.toLowerCase())
+    const found = departments.find((d) => {
+      const cat = CATEGORIAS_COMERCIALES.find(
+        (c) => c.id === selectedCategoryId,
+      );
+      return cat?.departamentos.some((dept) =>
+        d.nombre.toLowerCase().includes(dept.toLowerCase()),
       );
     });
     return found?.id || null;
@@ -290,9 +315,10 @@ function App() {
 
   // Encontrar la categoría entity para una familia
   const getCategoriaEntityForFamily = (family) => {
-    return categories.find(cat => 
-      cat.nombre.toLowerCase().includes(family.name.toLowerCase()) ||
-      family.name.toLowerCase().includes(cat.nombre.toLowerCase())
+    return categories.find(
+      (cat) =>
+        cat.nombre.toLowerCase().includes(family.name.toLowerCase()) ||
+        family.name.toLowerCase().includes(cat.nombre.toLowerCase()),
     );
   };
 
@@ -361,21 +387,31 @@ function App() {
                 key={dept.id}
                 id={dept.id}
                 name={dept.nombre}
-                image={(() => {
-                  const catComercial = CATEGORIAS_COMERCIALES.find(cat => 
-                    cat.departamentos.some(d => dept.nombre.toLowerCase().includes(d.toLowerCase()))
-                  );
-                  if (catComercial?.id && CATEGORIA_MAPPING[catComercial.id]) {
-                    return CATEGORIA_MAPPING[catComercial.id].image;
-                  }
-                  return CATEGORIA_MAPPING["desechables-envases"].image;
-                })()}
+                image={
+                  dept.imagenUrl ||
+                  (() => {
+                    const catComercial = CATEGORIAS_COMERCIALES.find((cat) =>
+                      cat.departamentos.some((d) =>
+                        dept.nombre.toLowerCase().includes(d.toLowerCase()),
+                      ),
+                    );
+                    if (
+                      catComercial?.id &&
+                      CATEGORIA_MAPPING[catComercial.id]
+                    ) {
+                      return CATEGORIA_MAPPING[catComercial.id].image;
+                    }
+                    return CATEGORIA_MAPPING["desechables-envases"].image;
+                  })()
+                }
                 identificadorIcono={dept.identificadorIcono}
                 activo={dept.activo}
                 onSelectCategory={() => {
                   // Encontrar el ID de categoría comercial correspondiente
-                  const catComercial = CATEGORIAS_COMERCIALES.find(cat =>
-                    cat.departamentos.some(d => dept.nombre.toLowerCase().includes(d.toLowerCase()))
+                  const catComercial = CATEGORIAS_COMERCIALES.find((cat) =>
+                    cat.departamentos.some((d) =>
+                      dept.nombre.toLowerCase().includes(d.toLowerCase()),
+                    ),
                   );
                   if (catComercial) {
                     handleCategoryChange(catComercial.id);

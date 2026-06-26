@@ -26,6 +26,8 @@ public class Departamento {
 
     private String identificadorIcono;
 
+    private String imagenUrl;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean activo = true;

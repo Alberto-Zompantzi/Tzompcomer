@@ -41,6 +41,9 @@ public class DepartamentoService {
             if (departamentoDetails.getIdentificadorIcono() != null) {
                 departamento.setIdentificadorIcono(departamentoDetails.getIdentificadorIcono());
             }
+            if (departamentoDetails.getImagenUrl() != null) {
+                departamento.setImagenUrl(departamentoDetails.getImagenUrl());
+            }
             if (departamentoDetails.getActivo() != null) {
                 departamento.setActivo(departamentoDetails.getActivo());
             }

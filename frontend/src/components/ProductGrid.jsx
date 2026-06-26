@@ -1,37 +1,10 @@
 import ProductCard from './ProductCard';
-import HomeCategoryCard from './HomeCategoryCard';
-import FamilyCard from './FamilyCard';
-import { getFamiliesByCategoryId, getProductsByFamilyId, CATALOG_IMAGES } from '../utils/productGrouping';
-
-// Arreglo fijo de categorías principales para la portada (usando el mapeo unificado)
-const MAIN_CATEGORIES = [
-  {
-    id: "desechables-envases",
-    name: "Desechables y Envases",
-    image: CATALOG_IMAGES.categorias["desechables-envases"]
-  },
-  {
-    id: "plasticos-contenedores",
-    name: "Plásticos y Contenedores",
-    image: CATALOG_IMAGES.categorias["plasticos-contenedores"]
-  },
-  {
-    id: "materias-primas",
-    name: "Materias Primas",
-    image: CATALOG_IMAGES.categorias["materias-primas"]
-  },
-  {
-    id: "ferreteria-herramientas",
-    name: "Ferretería y Herramientas",
-    image: CATALOG_IMAGES.categorias["ferreteria-herramientas"]
-  }
-];
+import { getFamiliesByCategoryId, getProductsByFamilyId } from '../utils/productGrouping';
 
 const ProductGrid = ({ 
   products, 
   selectedCategoryId, 
   subcategoriaSeleccionada, 
-  onSelectCategory, 
   onSelectFamily,
   isAdminMode, 
   onDeleteProduct, 
@@ -42,24 +15,6 @@ const ProductGrid = ({
   currentMacrocategoria
 }) => {
   console.log("ProductGrid: selectedCategoryId=", selectedCategoryId, "subcategoriaSeleccionada=", subcategoriaSeleccionada);
-
-  // NIVEL 1: Portada Principal ("Todos")
-  if (selectedCategoryId === "todos") {
-    console.log("ProductGrid: Renderizando NIVEL 1 - Portada Principal");
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {MAIN_CATEGORIES.map((category) => (
-          <HomeCategoryCard 
-            key={category.id}
-            id={category.id}
-            name={category.name}
-            image={category.image}
-            onSelectCategory={onSelectCategory}
-          />
-        ))}
-      </div>
-    );
-  }
 
   // NIVEL 3: Vista de productos de una Familia Maestra
   if (subcategoriaSeleccionada) {
@@ -105,20 +60,8 @@ const ProductGrid = ({
     );
   }
 
-  // NIVEL 2: Sub-portada de Familias Maestras
-  console.log("ProductGrid: Renderizando NIVEL 2 - Familias de:", selectedCategoryId);
-  const familias = getFamiliesByCategoryId(selectedCategoryId);
-  return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {familias.map((family) => (
-        <FamilyCard 
-          key={family.id}
-          family={family}
-          onSelectFamily={onSelectFamily}
-        />
-      ))}
-    </div>
-  );
+  // Si no hay subcategoría seleccionada, no renderizar nada (App.jsx ya renderiza las categorías)
+  return null;
 };
 
 export default ProductGrid;

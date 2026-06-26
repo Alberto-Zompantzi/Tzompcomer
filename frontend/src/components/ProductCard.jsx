@@ -56,14 +56,17 @@ const ProductCard = ({
     }
   };
 
-  const handleCategoryChange = (e) => {
-    const newCategoriaId = parseInt(e.target.value);
-    const newCategoria = categories.find(c => c.id === newCategoriaId);
-    if (newCategoria) {
-      onUpdateProduct(product.id, {
+  const handleCategoryChange = async (e) => {
+    const newCategoriaId = e.target.value ? parseInt(e.target.value) : null;
+    const newCategoria = newCategoriaId ? categories.find(c => c.id === newCategoriaId) : null;
+    
+    try {
+      await onUpdateProduct(product.id, {
         ...product,
-        categoriaEntity: newCategoria
+        categoriaEntity: newCategoria ? { id: newCategoria.id } : null
       });
+    } catch (error) {
+      console.error('Error al mover el producto:', error);
     }
   };
 
@@ -182,8 +185,8 @@ const ProductCard = ({
                 className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="">Sin categoría</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.nombre} ({cat.departamento?.nombre || 'Sin macrocategoría'})</option>
+                {relevantCategories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                 ))}
               </select>
             </div>

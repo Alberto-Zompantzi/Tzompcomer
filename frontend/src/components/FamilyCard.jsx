@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FALLBACK_IMAGE } from '../utils/productGrouping';
 
 const FamilyCard = ({ 
@@ -25,6 +25,19 @@ const FamilyCard = ({
     departamentoId: categoriaEntity ? categoriaEntity.departamento?.id : ''
   });
   const [moverCategoria, setMoverCategoria] = useState(categoriaEntity ? categoriaEntity.departamento?.id : '');
+  
+  // Reset form when props change
+  useEffect(() => {
+    const newData = {
+      nombre: categoriaEntity ? categoriaEntity.nombre : family.name,
+      imagenUrl: categoriaEntity ? categoriaEntity.imagenUrl : family.image,
+      activo: categoriaEntity ? categoriaEntity.activo : true,
+      departamentoId: categoriaEntity ? categoriaEntity.departamento?.id : ''
+    };
+    setFormData(newData);
+    setOriginalData(newData);
+    setMoverCategoria(categoriaEntity ? categoriaEntity.departamento?.id : '');
+  }, [categoriaEntity, family]);
 
   const handleEditClick = (e) => {
     e.stopPropagation();
