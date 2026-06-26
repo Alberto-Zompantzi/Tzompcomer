@@ -2,8 +2,8 @@ import ProductCard from './ProductCard';
 
 const ProductGrid = ({ 
   products, 
-  selectedCategoryId, 
   subcategoriaSeleccionada, 
+  searchTerm = '',
   onSelectFamily,
   isAdminMode, 
   onDeleteProduct, 
@@ -13,11 +13,17 @@ const ProductGrid = ({
   categories,
   currentMacrocategoria
 }) => {
-  console.log("ProductGrid: selectedCategoryId=", selectedCategoryId, "subcategoriaSeleccionada=", subcategoriaSeleccionada);
+  const hasSearch = searchTerm.trim().length > 0;
 
-  // NIVEL 3: Vista de productos de una Categoría de nivel medio
+  // Solo mostrar productos al entrar a una categoría (nivel 3) o al buscar
+  const shouldShowProducts = subcategoriaSeleccionada || hasSearch;
+
+  if (!shouldShowProducts) {
+    return null;
+  }
+
+  // Vista de productos de una categoría seleccionada
   if (subcategoriaSeleccionada) {
-    console.log("ProductGrid: Renderizando NIVEL 3 - Categoría:", subcategoriaSeleccionada);
     const categoria = categories.find(c => c.id === subcategoriaSeleccionada);
     
     return (
@@ -40,45 +46,41 @@ const ProductGrid = ({
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {products.map((product) => (
             <ProductCard
-                        key={product.id}
-                        product={product}
-                        familyImage={categoria?.imagenUrl}
-                        isAdminMode={isAdminMode}
-                        onDeleteProduct={onDeleteProduct}
-                        onUpdateProduct={onUpdateProduct}
-                        onSaveProduct={onSaveProduct}
-                        macrocategorias={macrocategorias}
-                        categories={categories}
-                        currentMacrocategoria={currentMacrocategoria}
-                      />
+              key={product.id}
+              product={product}
+              familyImage={categoria?.imagenUrl}
+              isAdminMode={isAdminMode}
+              onDeleteProduct={onDeleteProduct}
+              onUpdateProduct={onUpdateProduct}
+              onSaveProduct={onSaveProduct}
+              macrocategorias={macrocategorias}
+              categories={categories}
+              currentMacrocategoria={currentMacrocategoria}
+            />
           ))}
         </div>
       </div>
     );
   }
 
-  // NIVEL 2: Vista de productos de una Macrocategoría (sin subcategoría seleccionada)
-  if (selectedCategoryId !== "todos") {
-    return (
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {products.map((product) => (
-          <ProductCard
-                        key={product.id}
-                        product={product}
-                        isAdminMode={isAdminMode}
-                        onDeleteProduct={onDeleteProduct}
-                        onUpdateProduct={onUpdateProduct}
-                        onSaveProduct={onSaveProduct}
-                        macrocategorias={macrocategorias}
-                        categories={categories}
-                        currentMacrocategoria={currentMacrocategoria}
-                      />
-        ))}
-      </div>
-    );
-  }
-
-  return null;
+  // Resultados de búsqueda (sin categoría específica seleccionada)
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {products.map((product) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          isAdminMode={isAdminMode}
+          onDeleteProduct={onDeleteProduct}
+          onUpdateProduct={onUpdateProduct}
+          onSaveProduct={onSaveProduct}
+          macrocategorias={macrocategorias}
+          categories={categories}
+          currentMacrocategoria={currentMacrocategoria}
+        />
+      ))}
+    </div>
+  );
 };
 
 export default ProductGrid;

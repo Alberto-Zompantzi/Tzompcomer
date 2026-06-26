@@ -370,7 +370,15 @@ function App() {
               })()}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              {`${productosFiltrados.length} productos disponibles`}
+              {(() => {
+                if (subcategoriaSeleccionada || searchTerm.trim()) {
+                  return `${productosFiltrados.length} productos disponibles`;
+                }
+                if (selectedCategoryId !== "todos") {
+                  return `${filteredCategorias.length} categorías — elige una para ver productos`;
+                }
+                return `${macrocategorias.length} áreas de negocio`;
+              })()}
             </p>
           </div>
           {isAdminMode && (
@@ -468,8 +476,8 @@ function App() {
         ) : (
           <ProductGrid
             products={productosFiltrados}
-            selectedCategoryId={selectedCategoryId}
             subcategoriaSeleccionada={subcategoriaSeleccionada}
+            searchTerm={searchTerm}
             onSelectFamily={setSubcategoriaSeleccionada}
             isAdminMode={isAdminMode}
             onDeleteProduct={handleDeleteProduct}
