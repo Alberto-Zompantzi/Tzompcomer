@@ -286,17 +286,18 @@ function App() {
           </div>
         ) : (
           <ProductGrid
-            products={productosFiltrados}
-            selectedCategoryId={selectedCategoryId}
-            subcategoriaSeleccionada={subcategoriaSeleccionada}
-            onSelectFamily={setSubcategoriaSeleccionada}
-            isAdminMode={isAdminMode}
-            onDeleteProduct={handleDeleteProduct}
-            onUpdateProduct={handleUpdateProduct}
-            onSaveProduct={handleSaveProduct}
-            departments={departments}
-            onSelectCategory={handleCategoryChange}
-          />
+                    products={productosFiltrados}
+                    selectedCategoryId={selectedCategoryId}
+                    subcategoriaSeleccionada={subcategoriaSeleccionada}
+                    onSelectFamily={setSubcategoriaSeleccionada}
+                    isAdminMode={isAdminMode}
+                    onDeleteProduct={handleDeleteProduct}
+                    onUpdateProduct={handleUpdateProduct}
+                    onSaveProduct={handleSaveProduct}
+                    departments={departments}
+                    categories={categories}
+                    onSelectCategory={handleCategoryChange}
+                  />
         )}
       </main>
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useCartStore from '../store/useCartStore';
 import { FALLBACK_IMAGE } from '../utils/productGrouping';
 
-const ProductCard = ({ product, familyImage, isAdminMode, onDeleteProduct, onUpdateProduct, departments, onSaveProduct }) => {
+const ProductCard = ({ product, familyImage, isAdminMode, onDeleteProduct, onUpdateProduct, departments, categories, onSaveProduct }) => {
   const { addToCart } = useCartStore();
   const [isHovered, setIsHovered] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
@@ -41,13 +41,13 @@ const ProductCard = ({ product, familyImage, isAdminMode, onDeleteProduct, onUpd
     }
   };
 
-  const handleDepartmentChange = (e) => {
-    const newDepartmentId = parseInt(e.target.value);
-    const newDepartment = departments.find(d => d.id === newDepartmentId);
-    if (newDepartment) {
+  const handleCategoryChange = (e) => {
+    const newCategoriaId = parseInt(e.target.value);
+    const newCategoria = categories.find(c => c.id === newCategoriaId);
+    if (newCategoria) {
       onUpdateProduct(product.id, {
         ...product,
-        departamento: newDepartment
+        categoriaEntity: newCategoria
       });
     }
   };
@@ -162,14 +162,13 @@ const ProductCard = ({ product, familyImage, isAdminMode, onDeleteProduct, onUpd
             <div>
               <label className="text-xs font-semibold text-gray-600 mb-1 block">Mover a:</label>
               <select
-                value={product.departamento?.id || ''}
-                onChange={handleDepartmentChange}
+                value={product.categoriaEntity?.id || ''}
+                onChange={handleCategoryChange}
                 className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               >
-                {departments.map(dept => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.nombre}
-                  </option>
+                <option value="">Sin categoría</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.nombre} ({cat.departamento?.nombre || 'Sin macrocategoría'})</option>
                 ))}
               </select>
             </div>

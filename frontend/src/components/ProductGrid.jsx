@@ -37,7 +37,8 @@ const ProductGrid = ({
   onDeleteProduct, 
   onUpdateProduct, 
   onSaveProduct,
-  departments 
+  departments,
+  categories 
 }) => {
   console.log("ProductGrid: selectedCategoryId=", selectedCategoryId, "subcategoriaSeleccionada=", subcategoriaSeleccionada);
 
@@ -86,15 +87,16 @@ const ProductGrid = ({
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {productosFamilia.map((product) => (
             <ProductCard 
-              key={product.id} 
-              product={product}
-              familyImage={familia?.image}
-              isAdminMode={isAdminMode}
-              onDeleteProduct={onDeleteProduct}
-              onUpdateProduct={onUpdateProduct}
-              onSaveProduct={onSaveProduct}
-              departments={departments}
-            />
+                        key={product.id} 
+                        product={product}
+                        familyImage={familia?.image}
+                        isAdminMode={isAdminMode}
+                        onDeleteProduct={onDeleteProduct}
+                        onUpdateProduct={onUpdateProduct}
+                        onSaveProduct={onSaveProduct}
+                        departments={departments}
+                        categories={categories}
+                      />
           ))}
         </div>
       </div>

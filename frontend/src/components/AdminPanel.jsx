@@ -25,6 +25,8 @@ const AdminPanel = ({ onImportComplete }) => {
   const [categorias, setCategorias] = useState([]);
   const [editingCategoria, setEditingCategoria] = useState(null);
   const [categoriaForm, setCategoriaForm] = useState({ nombre: '', imagenUrl: '', activo: true, departamentoId: '' });
+  const [selectedCategoriaForAssignment, setSelectedCategoriaForAssignment] = useState(null);
+  const [searchProductoIndividual, setSearchProductoIndividual] = useState('');
 
   // Estados para Subcategorías
   const [subcategorias, setSubcategorias] = useState([]);
@@ -422,6 +424,24 @@ const AdminPanel = ({ onImportComplete }) => {
     }
   };
 
+  const handleAsignarProductoIndividual = async (productoId, categoriaId) => {
+    try {
+      await fetch(`${API_BASE_URL}/productos/assign-categoria`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productoIds: [productoId],
+          categoriaId: Number(categoriaId)
+        })
+      });
+      alert('Producto asignado correctamente!');
+      fetchProductos();
+    } catch (err) {
+      console.error(err);
+      alert('Error al asignar producto');
+    }
+  };
+
   // --- Efectos ---
   useEffect(() => {
     fetchAnalisis();
@@ -434,6 +454,7 @@ const AdminPanel = ({ onImportComplete }) => {
     if (activeTab === 'categorias' || activeTab === 'almacen') {
       fetchCategorias();
       fetchMacrocategorias();
+      fetchProductos();
     }
     if (activeTab === 'macrocategorias') fetchMacrocategorias();
     if (activeTab === 'subcategorias') {
@@ -694,26 +715,81 @@ const AdminPanel = ({ onImportComplete }) => {
 
             {/* --- Tab: Categorías --- */}
             {activeTab === 'categorias' && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <h2 className="text-2xl font-black text-gray-900">Gestión de Categorías (Nivel Medio)</h2>
-                
-                {/* Sección de Asignación Masiva por Etiqueta Excel */}
-                <div className="bg-gradient-to-r from-[#0033A0]/5 to-[#D4AF37]/5 p-6 rounded-2xl border border-[#0033A0]/10">
-                  <h3 className="font-black text-gray-900 text-lg mb-4">🏷️ Asignar Etiquetas Excel a Categorías</h3>
-                  <div className="flex flex-wrap gap-4 items-end">
-                    <select
-                      value={excelCategoriaSeleccionada}
-                      onChange={(e) => setExcelCategoriaSeleccionada(e.target.value)}
-                      className="flex-1 min-w-[250px] px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
-                    >
-                      <option value="">Selecciona una etiqueta de Excel</option>
-                      {excelCategorias.map((cat, idx) => (
-                        <option key={idx} value={cat}>{cat}</option>
-                      ))}
-                    </select>
+
+                {/* Panel de Asignación de Productos */}
+                {selectedCategoriaForAssignment && (
+                  <div className="bg-gradient-to-r from-[#0033A0]/10 to-[#D4AF37]/10 p-6 rounded-2xl border border-[#0033A0]/20">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-black text-gray-900 text-lg">📦 Asignar Productos a: {selectedCategoriaForAssignment.nombre}</h3>
+                      <button onClick={() => setSelectedCategoriaForAssignment(null)} className="px-4 py-2 bg-gray-200 rounded-lg font-semibold text-sm">Cerrar</button>
+                    </div>
+
+                    {/* Asignación Masiva por Etiqueta Excel */}
+                    <div className="bg-white p-4 rounded-xl mb-4">
+                      <h4 className="font-bold text-gray-900 mb-3">a. Asignación Masiva por Etiqueta Excel</h4>
+                      <div className="flex flex-wrap gap-3 items-end">
+                        <select
+                          value={excelCategoriaSeleccionada}
+                          onChange={(e) => setExcelCategoriaSeleccionada(e.target.value)}
+                          className="flex-1 min-w-[250px] px-4 py-2 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
+                        >
+                          <option value="">Selecciona una etiqueta de Excel</option>
+                          {excelCategorias.map((cat, idx) => (
+                            <option key={idx} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => handleAsignarExcelACategoria(selectedCategoriaForAssignment.id)}
+                          disabled={!excelCategoriaSeleccionada || asignando}
+                          className="px-6 py-2 bg-[#D4AF37] text-white rounded-xl font-bold disabled:opacity-50"
+                        >
+                          {asignando ? 'Asignando...' : 'Asignar Todos'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Asignación Individual */}
+                    <div className="bg-white p-4 rounded-xl">
+                      <h4 className="font-bold text-gray-900 mb-3">b. Asignación Individual (Buscar Producto)</h4>
+                      <input
+                        type="text"
+                        placeholder="Buscar producto por nombre o SKU..."
+                        value={searchProductoIndividual}
+                        onChange={(e) => setSearchProductoIndividual(e.target.value)}
+                        className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none mb-3"
+                      />
+                      <div className="max-h-40 overflow-y-auto space-y-2">
+                        {productos.filter(p => {
+                          if (!searchProductoIndividual) return true;
+                          const term = searchProductoIndividual.toLowerCase();
+                          return p.nombre.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term);
+                        }).slice(0, 10).map(producto => (
+                          <div key={producto.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              {producto.imagenUrl && (
+                                <img src={producto.imagenUrl} alt="" className="w-8 h-8 object-cover rounded" />
+                              )}
+                              <div>
+                                <p className="font-semibold text-sm text-gray-900">{producto.nombre}</p>
+                                <p className="text-xs text-gray-500">SKU: {producto.sku} | Actual: {producto.categoriaEntity?.nombre || 'Sin categoría'}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleAsignarProductoIndividual(producto.id, selectedCategoriaForAssignment.id)}
+                              className="px-3 py-1 bg-[#0033A0] text-white text-xs font-bold rounded-lg hover:bg-[#002270]"
+                            >
+                              Asignar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                
+                )}
+
+                {/* Formulario de Creación/Edición */}
                 <form onSubmit={handleSaveCategoria} className="bg-gray-50 p-6 rounded-2xl space-y-4">
                   <h3 className="font-black text-gray-900 text-lg">{editingCategoria ? 'Editar Categoría' : 'Agregar Categoría'}</h3>
                   <select
@@ -759,6 +835,7 @@ const AdminPanel = ({ onImportComplete }) => {
                   </div>
                 </form>
 
+                {/* Lista de Categorías */}
                 <div className="grid gap-4">
                   {categorias.map((categoria) => (
                     <div key={categoria.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
@@ -783,6 +860,9 @@ const AdminPanel = ({ onImportComplete }) => {
                           className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg font-semibold disabled:opacity-50"
                         >
                           {asignando ? 'Asignando...' : 'Asignar Etiqueta Excel'}
+                        </button>
+                        <button onClick={() => setSelectedCategoriaForAssignment(categoria)} className="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold">
+                          📦 Gestionar Productos
                         </button>
                         <button onClick={() => { 
                           setEditingCategoria(categoria); 
