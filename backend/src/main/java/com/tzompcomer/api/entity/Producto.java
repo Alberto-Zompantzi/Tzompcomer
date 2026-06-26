@@ -1,5 +1,6 @@
 package com.tzompcomer.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,6 +36,7 @@ public class Producto {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "departamento_id")
     @Deprecated
+    @JsonIgnoreProperties("productos")
     private Departamento departamento;
 
     @Deprecated
@@ -53,9 +55,11 @@ public class Producto {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "categoria_entity_id") // Nombre de columna que usamos en la migración manual
+    @JsonIgnoreProperties("productos")
     private Categoria categoriaEntity;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "subcategoria_id")
+    @JsonIgnoreProperties("productos")
     private Subcategoria subcategoria;
 }
