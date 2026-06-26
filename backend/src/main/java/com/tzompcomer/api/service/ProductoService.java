@@ -1,6 +1,7 @@
 package com.tzompcomer.api.service;
 
 import com.tzompcomer.api.entity.Categoria;
+import com.tzompcomer.api.entity.Departamento;
 import com.tzompcomer.api.entity.Producto;
 import com.tzompcomer.api.repository.CategoriaRepository;
 import com.tzompcomer.api.repository.DepartamentoRepository;
@@ -68,6 +69,45 @@ public class ProductoService {
 
     public Optional<Producto> findBySku(String sku) {
         return productoRepository.findBySku(sku);
+    }
+
+    // NUEVOS MÉTODOS PARA LA ASIGNACIÓN MASIVA
+    public List<String> findDistinctExcelCategorias() {
+        return productoRepository.findDistinctExcelCategorias();
+    }
+
+    @Transactional
+    @CacheEvict(value = "productosCache", allEntries = true)
+    public void assignExcelCategoriaToCategoria(String excelCategoria, Long categoriaId) {
+        Optional<Categoria> categoriaOpt = categoriaRepository.findById(categoriaId);
+        if (categoriaOpt.isEmpty()) {
+            return;
+        }
+        Categoria categoria = categoriaOpt.get();
+        productoRepository.assignExcelCategoriaToCategoria(excelCategoria, categoria);
+    }
+
+    @Transactional
+    @CacheEvict(value = "productosCache", allEntries = true)
+    public void assignExcelCategoriaToDepartamento(String excelCategoria, Long departamentoId, String categoriaNombre) {
+        Optional<Departamento> departamentoOpt = departamentoRepository.findById(departamentoId);
+        if (departamentoOpt.isEmpty()) {
+            return;
+        }
+        Departamento departamento = departamentoOpt.get();
+
+        // Obtener o crear la categoría (si no existe, la creamos con el nombre dado)
+        Categoria categoria = categoriaRepository.findByNombre(categoriaNombre).orElseGet(() -> {
+            Categoria nuevaCategoria = Categoria.builder()
+                    .nombre(categoriaNombre)
+                    .departamento(departamento)
+                    .activo(true)
+                    .build();
+            return categoriaRepository.save(nuevaCategoria);
+        });
+
+        // Asignar todos los productos de la etiqueta Excel a esta categoría
+        productoRepository.assignExcelCategoriaToCategoria(excelCategoria, categoria);
     }
 
     @Transactional

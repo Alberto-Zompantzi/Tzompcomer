@@ -40,6 +40,11 @@ const AdminPanel = ({ onImportComplete }) => {
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
   const [busquedaProducto, setBusquedaProducto] = useState('');
   const [categoriaSeleccionadaAsignar, setCategoriaSeleccionadaAsignar] = useState('');
+  
+  // Estados para Etiquetas Excel (Asignación Masiva)
+  const [excelCategorias, setExcelCategorias] = useState([]);
+  const [excelCategoriaSeleccionada, setExcelCategoriaSeleccionada] = useState('');
+  const [asignando, setAsignando] = useState(false);
 
   // --- Funciones para Importación ---
   const handleFileChange = (e) => {
@@ -352,6 +357,70 @@ const AdminPanel = ({ onImportComplete }) => {
     const searchLower = busquedaProducto.toLowerCase();
     return p.nombre.toLowerCase().includes(searchLower) || p.sku.toLowerCase().includes(searchLower);
   });
+  
+  // --- Funciones para Asignación Masiva por Etiqueta Excel ---
+  const fetchExcelCategorias = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/productos/excel-categorias`);
+      const data = await res.json();
+      setExcelCategorias(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  
+  const handleAsignarExcelAMacrocategoria = async (macrocategoriaId, categoriaNombre) => {
+    if (!excelCategoriaSeleccionada) {
+      alert('Por favor selecciona una etiqueta Excel');
+      return;
+    }
+    setAsignando(true);
+    try {
+      await fetch(`${API_BASE_URL}/productos/assign-excel-to-macrocategoria`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          excelCategoria: excelCategoriaSeleccionada,
+          departamentoId: Number(macrocategoriaId),
+          categoriaNombre: categoriaNombre
+        })
+      });
+      alert(`Productos de la etiqueta "${excelCategoriaSeleccionada}" asignados a "${categoriaNombre}"!`);
+      fetchCategorias();
+      fetchMacrocategorias();
+    } catch (err) {
+      console.error(err);
+      alert('Error al asignar');
+    } finally {
+      setAsignando(false);
+    }
+  };
+  
+  const handleAsignarExcelACategoria = async (categoriaId) => {
+    if (!excelCategoriaSeleccionada) {
+      alert('Por favor selecciona una etiqueta Excel');
+      return;
+    }
+    setAsignando(true);
+    try {
+      await fetch(`${API_BASE_URL}/productos/assign-excel-to-categoria`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          excelCategoria: excelCategoriaSeleccionada,
+          categoriaId: Number(categoriaId)
+        })
+      });
+      alert(`Productos de la etiqueta "${excelCategoriaSeleccionada}" asignados a la categoría!`);
+      fetchCategorias();
+      fetchProductos();
+    } catch (err) {
+      console.error(err);
+      alert('Error al asignar');
+    } finally {
+      setAsignando(false);
+    }
+  };
 
   // --- Efectos ---
   useEffect(() => {
@@ -359,6 +428,9 @@ const AdminPanel = ({ onImportComplete }) => {
   }, []);
 
   useEffect(() => {
+    if (activeTab === 'categorias' || activeTab === 'almacen' || activeTab === 'macrocategorias') {
+      fetchExcelCategorias();
+    }
     if (activeTab === 'categorias' || activeTab === 'almacen') {
       fetchCategorias();
       fetchMacrocategorias();
@@ -533,6 +605,23 @@ const AdminPanel = ({ onImportComplete }) => {
               <div className="space-y-6">
                 <h2 className="text-2xl font-black text-gray-900">Gestión de Macrocategorías (Nivel Superior)</h2>
                 
+                {/* Sección de Asignación Masiva por Etiqueta Excel */}
+                <div className="bg-gradient-to-r from-[#0033A0]/5 to-[#D4AF37]/5 p-6 rounded-2xl border border-[#0033A0]/10">
+                  <h3 className="font-black text-gray-900 text-lg mb-4">🏷️ Asignar Etiquetas Excel a Macrocategorías</h3>
+                  <div className="flex flex-wrap gap-4 items-end">
+                    <select
+                      value={excelCategoriaSeleccionada}
+                      onChange={(e) => setExcelCategoriaSeleccionada(e.target.value)}
+                      className="flex-1 min-w-[250px] px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
+                    >
+                      <option value="">Selecciona una etiqueta de Excel</option>
+                      {excelCategorias.map((cat, idx) => (
+                        <option key={idx} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
                 <form onSubmit={handleSaveMacrocategoria} className="bg-gray-50 p-6 rounded-2xl space-y-4">
                   <h3 className="font-black text-gray-900 text-lg">{editingMacrocategoria ? 'Editar Macrocategoría' : 'Agregar Macrocategoría'}</h3>
                   <input
@@ -569,8 +658,8 @@ const AdminPanel = ({ onImportComplete }) => {
 
                 <div className="grid gap-4">
                   {macrocategorias.map((macro) => (
-                    <div key={macro.id} className="flex items-center justify-between p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
-                      <div className="flex items-center gap-4">
+                    <div key={macro.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+                      <div className="flex items-center gap-4 mb-4 md:mb-0">
                         <div className="w-16 h-16 bg-gradient-to-br from-[#0033A0]/10 to-[#D4AF37]/10 rounded-xl flex items-center justify-center">
                           <span className="text-[#0033A0] font-black text-xl">{macro.identificadorIcono || '📂'}</span>
                         </div>
@@ -581,7 +670,19 @@ const AdminPanel = ({ onImportComplete }) => {
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex flex-wrap gap-3">
+                        <button 
+                          onClick={() => { 
+                            const nombreCategoria = prompt('¿Nombre de la categoría a crear/asignar?', excelCategoriaSeleccionada || '');
+                            if (nombreCategoria) {
+                              handleAsignarExcelAMacrocategoria(macro.id, nombreCategoria); 
+                            }
+                          }} 
+                          disabled={!excelCategoriaSeleccionada || asignando}
+                          className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg font-semibold disabled:opacity-50"
+                        >
+                          {asignando ? 'Asignando...' : 'Asignar Etiqueta Excel'}
+                        </button>
                         <button onClick={() => { setEditingMacrocategoria(macro); setMacrocategoriaForm({ nombre: macro.nombre, identificadorIcono: macro.identificadorIcono || '', activo: macro.activo }); }} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold">Editar</button>
                         <button onClick={() => handleDeleteMacrocategoria(macro.id)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold">Eliminar</button>
                       </div>
@@ -595,6 +696,23 @@ const AdminPanel = ({ onImportComplete }) => {
             {activeTab === 'categorias' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-black text-gray-900">Gestión de Categorías (Nivel Medio)</h2>
+                
+                {/* Sección de Asignación Masiva por Etiqueta Excel */}
+                <div className="bg-gradient-to-r from-[#0033A0]/5 to-[#D4AF37]/5 p-6 rounded-2xl border border-[#0033A0]/10">
+                  <h3 className="font-black text-gray-900 text-lg mb-4">🏷️ Asignar Etiquetas Excel a Categorías</h3>
+                  <div className="flex flex-wrap gap-4 items-end">
+                    <select
+                      value={excelCategoriaSeleccionada}
+                      onChange={(e) => setExcelCategoriaSeleccionada(e.target.value)}
+                      className="flex-1 min-w-[250px] px-4 py-3 rounded-xl border border-gray-300 focus:border-[#0033A0] outline-none"
+                    >
+                      <option value="">Selecciona una etiqueta de Excel</option>
+                      {excelCategorias.map((cat, idx) => (
+                        <option key={idx} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 
                 <form onSubmit={handleSaveCategoria} className="bg-gray-50 p-6 rounded-2xl space-y-4">
                   <h3 className="font-black text-gray-900 text-lg">{editingCategoria ? 'Editar Categoría' : 'Agregar Categoría'}</h3>
@@ -643,8 +761,8 @@ const AdminPanel = ({ onImportComplete }) => {
 
                 <div className="grid gap-4">
                   {categorias.map((categoria) => (
-                    <div key={categoria.id} className="flex items-center justify-between p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
-                      <div className="flex items-center gap-4">
+                    <div key={categoria.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+                      <div className="flex items-center gap-4 mb-4 md:mb-0">
                         {categoria.imagenUrl && (
                           <img src={categoria.imagenUrl} alt={categoria.nombre} className="w-16 h-16 object-cover rounded-xl" />
                         )}
@@ -658,7 +776,14 @@ const AdminPanel = ({ onImportComplete }) => {
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex flex-wrap gap-3">
+                        <button 
+                          onClick={() => handleAsignarExcelACategoria(categoria.id)} 
+                          disabled={!excelCategoriaSeleccionada || asignando}
+                          className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg font-semibold disabled:opacity-50"
+                        >
+                          {asignando ? 'Asignando...' : 'Asignar Etiqueta Excel'}
+                        </button>
                         <button onClick={() => { 
                           setEditingCategoria(categoria); 
                           setCategoriaForm({ 

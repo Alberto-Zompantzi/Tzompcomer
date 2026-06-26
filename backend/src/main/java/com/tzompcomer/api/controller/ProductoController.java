@@ -43,6 +43,35 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.searchAll(searchTerm));
     }
 
+    // NUEVOS ENDPOINTS PARA ASIGNACIÓN MASIVA
+    @GetMapping("/productos/excel-categorias")
+    public ResponseEntity<List<String>> getExcelCategorias() {
+        return ResponseEntity.ok(productoService.findDistinctExcelCategorias());
+    }
+
+    @PostMapping("/productos/assign-excel-to-categoria")
+    public ResponseEntity<Map<String, String>> assignExcelToCategoria(@RequestBody Map<String, Object> request) {
+        String excelCategoria = request.get("excelCategoria").toString();
+        Long categoriaId = Long.valueOf(request.get("categoriaId").toString());
+        productoService.assignExcelCategoriaToCategoria(excelCategoria, categoriaId);
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("message", "Productos de la etiqueta '" + excelCategoria + "' asignados exitosamente a la categoría");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/productos/assign-excel-to-macrocategoria")
+    public ResponseEntity<Map<String, String>> assignExcelToMacrocategoria(@RequestBody Map<String, Object> request) {
+        String excelCategoria = request.get("excelCategoria").toString();
+        Long departamentoId = Long.valueOf(request.get("departamentoId").toString());
+        String categoriaNombre = request.get("categoriaNombre").toString();
+        productoService.assignExcelCategoriaToDepartamento(excelCategoria, departamentoId, categoriaNombre);
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("message", "Productos de la etiqueta '" + excelCategoria + "' asignados exitosamente a la categoría '" + categoriaNombre + "'");
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/productos")
     public ResponseEntity<Page<Producto>> search(
             @RequestParam(required = false) Long departamentoId,

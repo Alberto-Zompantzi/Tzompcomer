@@ -5,9 +5,11 @@ import com.tzompcomer.api.entity.Producto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -59,4 +61,15 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             @Param("subcategoriaId") Long subcategoriaId, 
             @Param("searchTerm") String searchTerm, 
             Pageable pageable);
+
+    // NUEVOS MÉTODOS PARA LA ASIGNACIÓN MASIVA
+    @Query("SELECT DISTINCT p.categoria FROM Producto p WHERE p.categoria IS NOT NULL AND p.categoria <> '' ORDER BY p.categoria")
+    List<String> findDistinctExcelCategorias();
+
+    List<Producto> findByCategoria(String excelCategoria);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Producto p SET p.categoriaEntity = :categoria WHERE p.categoria = :excelCategoria")
+    void assignExcelCategoriaToCategoria(@Param("excelCategoria") String excelCategoria, @Param("categoria") Categoria categoria);
 }
