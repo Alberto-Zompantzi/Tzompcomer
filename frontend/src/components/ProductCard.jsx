@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import useCartStore from '../store/useCartStore';
 import { FALLBACK_IMAGE } from '../utils/productGrouping';
+import ProductDetailModal from './ProductDetailModal';
 
 const ProductCard = ({ 
   product, 
@@ -17,6 +18,7 @@ const ProductCard = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [formData, setFormData] = useState({
     nombre: product.nombre,
     precio: product.precio,
@@ -104,9 +106,16 @@ const ProductCard = ({
     return FALLBACK_IMAGE;
   };
 
+  const handleOpenDetail = () => {
+    if (!isAdminMode && !editando) {
+      setShowDetail(true);
+    }
+  };
+
   const displayImage = resolveImage(formData.imagenUrl, product.imagenUrl, familyImage);
 
   return (
+    <>
     <div
       className={`group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
         isAdminMode ? 'ring-2 ring-red-300' : ''
@@ -115,7 +124,18 @@ const ProductCard = ({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Imagen */}
-      <div className="relative aspect-square overflow-hidden bg-shopify-gray">
+      <div
+        className={`relative aspect-square overflow-hidden bg-shopify-gray ${!isAdminMode && !editando ? 'cursor-pointer' : ''}`}
+        onClick={handleOpenDetail}
+        role={!isAdminMode && !editando ? 'button' : undefined}
+        tabIndex={!isAdminMode && !editando ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (!isAdminMode && !editando && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            handleOpenDetail();
+          }
+        }}
+      >
         {/* Imagen */}
         <img
           src={displayImage}
@@ -216,7 +236,11 @@ const ProductCard = ({
               className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           ) : (
-            <h3 className="line-clamp-2 text-sm font-semibold text-shopify-text leading-snug">
+            <h3
+              className={`line-clamp-2 sm:line-clamp-3 text-xs sm:text-sm font-semibold text-shopify-text leading-snug ${!isAdminMode ? 'cursor-pointer hover:text-[#0033A0]' : ''}`}
+              onClick={handleOpenDetail}
+              title={formData.nombre}
+            >
               {formData.nombre}
             </h3>
           )}
@@ -301,7 +325,11 @@ const ProductCard = ({
             </div>
           ) : (
             <button
-              onClick={handleAddToCart}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddToCart();
+              }}
               className={`flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${
                 isAdded
                   ? 'bg-green-500 text-white'
@@ -346,6 +374,13 @@ const ProductCard = ({
         </div>
       </div>
     </div>
+
+    <ProductDetailModal
+      product={product}
+      isOpen={showDetail}
+      onClose={() => setShowDetail(false)}
+    />
+    </>
   );
 };
 

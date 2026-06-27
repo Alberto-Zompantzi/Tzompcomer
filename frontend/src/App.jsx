@@ -1,14 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import {
-  getFamiliesByCategoryId,
-  CATEGORIA_MAPPING,
-} from "./utils/productGrouping";
+import { FALLBACK_IMAGE } from "./utils/productGrouping";
 import Header from "./components/Header";
-import DepartmentNav, {
-  CATEGORIAS_COMERCIALES,
-  COMMERCIAL_TO_MACRO,
-  MACRO_TO_COMMERCIAL,
-} from "./components/DepartmentNav";
+import DepartmentNav, { parseMacroNavId, macroNavId } from "./components/DepartmentNav";
 import ProductGrid from "./components/ProductGrid";
 import CheckoutModal from "./components/CheckoutModal";
 import Hero from "./components/Hero";
@@ -41,15 +34,24 @@ function App() {
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const { clearCart } = useCartStore();
 
-  // Función para manejar el cambio de categoría con reset completo
+  const activeMacrocategorias = useMemo(
+    () =>
+      macrocategorias
+        .filter((m) => m.activo !== false)
+        .sort((a, b) => (a.orden || 0) - (b.orden || 0)),
+    [macrocategorias],
+  );
+
   const handleCategoryChange = (id) => {
-    console.log("Cambiando a categoría:", id);
     setSelectedCategoryId(id);
     setSubcategoriaSeleccionada(null);
     setSearchTerm("");
   };
 
-  // Resetear subcategoría cuando cambie la categoría principal
+  const handleMacroSelect = (macroId) => {
+    handleCategoryChange(macroNavId(macroId));
+  };
+
   useEffect(() => {
     setSubcategoriaSeleccionada(null);
   }, [selectedCategoryId]);
@@ -81,9 +83,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE_URL}/productos/${productId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedProduct),
       });
       const savedProduct = await res.json();
@@ -99,9 +99,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE_URL}/productos/${productId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(productData),
       });
       const savedProduct = await res.json();
@@ -110,7 +108,7 @@ function App() {
       );
     } catch (err) {
       console.error("Error saving product:", err);
-      throw err; // Propagate error to show user feedback
+      throw err;
     }
   };
 
@@ -136,6 +134,9 @@ function App() {
         method: "DELETE",
       });
       setMacrocategorias((prev) => prev.filter((d) => d.id !== id));
+      if (selectedCategoryId === macroNavId(id)) {
+        handleCategoryChange("todos");
+      }
     } catch (err) {
       console.error("Error deleting macrocategoría:", err);
     }
@@ -143,7 +144,6 @@ function App() {
 
   const handleEditCategoria = async (id, data) => {
     try {
-      // Preparamos el cuerpo con la estructura correcta para el backend
       const body = {
         nombre: data.nombre,
         imagenUrl: data.imagenUrl,
@@ -161,10 +161,7 @@ function App() {
 
       if (res.ok) {
         const updated = await res.json();
-        console.log("Categoría actualizada:", updated);
         setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
-      } else {
-        console.error("Error al actualizar categoría, status:", res.status);
       }
     } catch (err) {
       console.error("Error updating categoría:", err);
@@ -177,6 +174,9 @@ function App() {
         method: "DELETE",
       });
       setCategories((prev) => prev.filter((c) => c.id !== id));
+      if (subcategoriaSeleccionada === id) {
+        setSubcategoriaSeleccionada(null);
+      }
     } catch (err) {
       console.error("Error deleting categoría:", err);
     }
@@ -195,8 +195,6 @@ function App() {
       if (res.ok) {
         const updated = await res.json();
         setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
-      } else {
-        console.error("Error al mover categoría, status:", res.status);
       }
     } catch (err) {
       console.error("Error moving categoría:", err);
@@ -241,91 +239,65 @@ function App() {
     fetchData();
   }, [dataRefreshKey]);
 
-  const handleImportComplete = () => {
+  const handleCatalogChange = () => {
     setDataRefreshKey((prev) => prev + 1);
   };
 
-  // Obtener la categoría comercial seleccionada y familia
-  const categoriaSeleccionada = CATEGORIAS_COMERCIALES.find(
-    (c) => c.id === selectedCategoryId,
-  );
-
-  const familiasCategorias = useMemo(
-    () => getFamiliesByCategoryId(selectedCategoryId),
+  const currentMacrocategoriaId = useMemo(
+    () => parseMacroNavId(selectedCategoryId),
     [selectedCategoryId],
   );
 
-  const familiaSeleccionada = useMemo(
-    () => familiasCategorias.find((f) => f.id === subcategoriaSeleccionada),
-    [familiasCategorias, subcategoriaSeleccionada],
+  const selectedMacrocategoria = useMemo(
+    () => macrocategorias.find((m) => m.id === currentMacrocategoriaId),
+    [macrocategorias, currentMacrocategoriaId],
   );
 
-  // Filtrar productos por categoría comercial y término de búsqueda
+  const filteredCategorias = useMemo(() => {
+    if (!currentMacrocategoriaId) return [];
+    return categories
+      .filter(
+        (cat) =>
+          cat.activo !== false &&
+          cat.macrocategoria?.id === currentMacrocategoriaId,
+      )
+      .sort((a, b) => (a.orden || 0) - (b.orden || 0));
+  }, [categories, currentMacrocategoriaId]);
+
   const productosFiltrados = useMemo(() => {
     let filtered = [...products];
 
-    // Filtrar por categoría seleccionada (nivel 2)
     if (subcategoriaSeleccionada) {
       filtered = filtered.filter(
         (product) => product.categoriaEntity?.id === subcategoriaSeleccionada,
       );
-    }
-    // Filtrar por categoría comercial (nivel 1)
-    else if (selectedCategoryId !== "todos") {
-      const targetMacro = COMMERCIAL_TO_MACRO[selectedCategoryId];
-      const categoriaComercial = CATEGORIAS_COMERCIALES.find(
-        (c) => c.id === selectedCategoryId,
+    } else if (currentMacrocategoriaId) {
+      filtered = filtered.filter(
+        (product) =>
+          product.categoriaEntity?.macrocategoria?.id ===
+          currentMacrocategoriaId,
       );
-      if (categoriaComercial) {
-        filtered = filtered.filter((product) => {
-          const macroName = product.categoriaEntity?.macrocategoria?.nombre;
-          if (targetMacro && macroName) {
-            return macroName === targetMacro;
-          }
-          const excelDept = (product.categoria || "").toLowerCase();
-          return categoriaComercial.departamentos.some(
-            (dept) => excelDept === dept.toLowerCase(),
-          );
-        });
-      }
     }
 
-    // Filtrar por término de búsqueda
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
         (product) =>
           product.nombre?.toLowerCase().includes(searchLower) ||
-          product.sku?.toLowerCase().includes(searchLower),
+          product.sku?.toLowerCase().includes(searchLower) ||
+          product.descripcion?.toLowerCase().includes(searchLower),
       );
     }
 
     return filtered;
-  }, [products, selectedCategoryId, subcategoriaSeleccionada, searchTerm]);
+  }, [
+    products,
+    currentMacrocategoriaId,
+    subcategoriaSeleccionada,
+    searchTerm,
+  ]);
 
-  // Obtener la macrocategoría actual (para filtrar categorías en ProductCard)
-  const currentMacrocategoriaId = useMemo(() => {
-    if (selectedCategoryId === "todos") return null;
-    const targetMacro = COMMERCIAL_TO_MACRO[selectedCategoryId];
-    const found = macrocategorias.find((d) => d.nombre === targetMacro);
-    return found?.id || null;
-  }, [macrocategorias, selectedCategoryId]);
-
-  const filteredCategorias = useMemo(() => {
-    if (!currentMacrocategoriaId) return [];
-    return categories
-      .filter((cat) => cat.macrocategoria?.id === currentMacrocategoriaId)
-      .sort((a, b) => (a.orden || 0) - (b.orden || 0));
-  }, [categories, currentMacrocategoriaId]);
-
-  // Encontrar la categoría entity para una familia
-  const getCategoriaEntityForFamily = (family) => {
-    return categories.find(
-      (cat) =>
-        cat.nombre.toLowerCase().includes(family.name.toLowerCase()) ||
-        family.name.toLowerCase().includes(cat.nombre.toLowerCase()),
-    );
-  };
+  const firstMacroId = activeMacrocategorias[0]?.id;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -338,24 +310,26 @@ function App() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero solo cuando está en la página principal */}
         {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
-          <Hero onExplore={() => handleCategoryChange("desechables-envases")} />
+          <Hero
+            onExplore={() => {
+              if (firstMacroId) handleMacroSelect(firstMacroId);
+            }}
+          />
         )}
 
-        {/* Banner de Productos Estrella (solo en página principal) */}
         {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
           <StarProductsBanner />
         )}
 
         <div className="mb-8">
           <DepartmentNav
+            macrocategorias={macrocategorias}
             selectedCategoryId={selectedCategoryId}
             onCategoryChange={handleCategoryChange}
           />
         </div>
 
-        {/* Título principal */}
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-black text-[#121212]">
@@ -366,7 +340,8 @@ function App() {
                   );
                   return cat?.nombre;
                 }
-                return categoriaSeleccionada?.nombre || "Todos los productos";
+                if (selectedMacrocategoria) return selectedMacrocategoria.nombre;
+                return "Todos los productos";
               })()}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -374,10 +349,10 @@ function App() {
                 if (subcategoriaSeleccionada || searchTerm.trim()) {
                   return `${productosFiltrados.length} productos disponibles`;
                 }
-                if (selectedCategoryId !== "todos") {
+                if (currentMacrocategoriaId) {
                   return `${filteredCategorias.length} categorías — elige una para ver productos`;
                 }
-                return `${macrocategorias.length} áreas de negocio`;
+                return `${activeMacrocategorias.length} áreas de negocio`;
               })()}
             </p>
           </div>
@@ -396,39 +371,17 @@ function App() {
           )}
         </div>
 
-        {/* Macrocategorías en la página principal */}
         {selectedCategoryId === "todos" && !subcategoriaSeleccionada && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {macrocategorias.map((dept) => (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10 mb-12">
+            {activeMacrocategorias.map((dept) => (
               <HomeCategoryCard
                 key={dept.id}
                 id={dept.id}
                 name={dept.nombre}
-                image={
-                  dept.imagenUrl ||
-                  (() => {
-                    const catComercial = CATEGORIAS_COMERCIALES.find((cat) =>
-                      cat.departamentos.some((d) =>
-                        dept.nombre.toLowerCase().includes(d.toLowerCase()),
-                      ),
-                    );
-                    if (
-                      catComercial?.id &&
-                      CATEGORIA_MAPPING[catComercial.id]
-                    ) {
-                      return CATEGORIA_MAPPING[catComercial.id].image;
-                    }
-                    return CATEGORIA_MAPPING["desechables-envases"].image;
-                  })()
-                }
+                image={dept.imagenUrl || FALLBACK_IMAGE}
                 identificadorIcono={dept.identificadorIcono}
                 activo={dept.activo}
-                onSelectCategory={() => {
-                  const commercialId = MACRO_TO_COMMERCIAL[dept.nombre];
-                  if (commercialId) {
-                    handleCategoryChange(commercialId);
-                  }
-                }}
+                onSelectCategory={() => handleMacroSelect(dept.id)}
                 isAdminMode={isAdminMode}
                 onEditMacrocategoria={handleEditMacrocategoria}
                 onDeleteMacrocategoria={handleDeleteMacrocategoria}
@@ -437,8 +390,7 @@ function App() {
           </div>
         )}
 
-        {/* Categorías REALES cuando seleccionamos una macrocategoría */}
-        {selectedCategoryId !== "todos" && !subcategoriaSeleccionada && (
+        {currentMacrocategoriaId && !subcategoriaSeleccionada && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
             {filteredCategorias.map((categoria) => (
               <FamilyCard
@@ -455,7 +407,6 @@ function App() {
           </div>
         )}
 
-        {/* Product Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -485,7 +436,6 @@ function App() {
             onSaveProduct={handleSaveProduct}
             macrocategorias={macrocategorias}
             categories={categories}
-            onSelectCategory={handleCategoryChange}
             currentMacrocategoria={currentMacrocategoriaId}
           />
         )}
@@ -497,7 +447,6 @@ function App() {
 
       <Footer onAdminClick={handleAdminClick} />
 
-      {/* Botón flotante de Admin (solo visible en modo admin) */}
       {isAdminMode && (
         <button
           onClick={() => setShowAdminPanel(true)}
@@ -528,7 +477,6 @@ function App() {
         </button>
       )}
 
-      {/* Modal de AdminPanel */}
       {showAdminPanel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-6xl max-h-[90vh] overflow-auto bg-gray-50 rounded-2xl shadow-2xl">
@@ -555,7 +503,7 @@ function App() {
                 </svg>
               </button>
             </div>
-            <AdminPanel onImportComplete={handleImportComplete} />
+            <AdminPanel onCatalogChange={handleCatalogChange} />
           </div>
         </div>
       )}

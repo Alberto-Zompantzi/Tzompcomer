@@ -98,6 +98,14 @@ const FamilyCard = ({
     <div 
       className="group relative overflow-hidden rounded-3xl bg-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
       onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (!editando && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onSelectFamily(categoria.id);
+        }
+      }}
     >
       <div className="relative aspect-square overflow-hidden">
         <img 
@@ -114,15 +122,9 @@ const FamilyCard = ({
             <h3 className="text-lg md:text-xl font-black text-white mb-3 drop-shadow-lg">
               {categoria.nombre}
             </h3>
-            <button 
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/95 hover:bg-white text-[#0033A0] font-bold rounded-full transition-all duration-300"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectFamily(categoria.id);
-              }}
-            >
+            <span className="inline-flex items-center gap-2 self-start px-5 py-2.5 bg-white/95 group-hover:bg-white text-[#0033A0] font-bold rounded-full transition-all duration-300 pointer-events-none">
               Ver productos
-            </button>
+            </span>
           </>
         ) : (
           <form onSubmit={handleSaveEdit} onClick={(e) => e.stopPropagation()} className="bg-white p-4 rounded-xl shadow-lg w-full max-w-sm">

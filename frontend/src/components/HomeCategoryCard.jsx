@@ -78,11 +78,19 @@ const HomeCategoryCard = ({
 
   return (
     <div 
-      className="group relative overflow-hidden rounded-3xl bg-white shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
-      onClick={() => !editando && onSelectCategory(id)}
+      className="group relative overflow-hidden rounded-3xl bg-white shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer min-h-[320px] sm:min-h-[380px] md:min-h-[420px]"
+      onClick={() => !editando && onSelectCategory()}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (!editando && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onSelectCategory();
+        }
+      }}
     >
       {/* Imagen de la categoría */}
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative aspect-[3/2] sm:aspect-[16/10] overflow-hidden min-h-[220px] sm:min-h-[260px]">
         <img 
           src={image} 
           alt={name} 
@@ -94,18 +102,14 @@ const HomeCategoryCard = ({
       </div>
 
       {/* Contenido de la tarjeta */}
-      <div className="absolute inset-0 flex flex-col justify-end p-6">
+      <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-10">
         {!editando ? (
           <>
-            <h2 className="text-2xl md:text-3xl font-black text-white mb-4 drop-shadow-lg">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-5 drop-shadow-lg">
               {name}
             </h2>
-            <button 
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white/95 hover:bg-white text-[#0033A0] font-bold rounded-full transition-all duration-300 group-hover:gap-4 group-hover:shadow-lg"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectCategory(id);
-              }}
+            <span 
+              className="inline-flex items-center gap-2 self-start px-7 py-3.5 bg-white/95 group-hover:bg-white text-[#0033A0] font-bold text-base rounded-full transition-all duration-300 group-hover:gap-4 group-hover:shadow-lg pointer-events-none"
             >
               Explorar productos
               <svg 
@@ -117,7 +121,7 @@ const HomeCategoryCard = ({
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
-            </button>
+            </span>
           </>
         ) : (
           <form onSubmit={handleSaveEdit} onClick={(e) => e.stopPropagation()} className="bg-white p-4 rounded-xl shadow-lg w-full max-w-sm">

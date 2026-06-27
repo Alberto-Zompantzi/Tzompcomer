@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
-const AdminPanel = ({ onImportComplete }) => {
+const AdminPanel = ({ onCatalogChange, onImportComplete }) => {
+  const notifyCatalogChange = onCatalogChange || onImportComplete;
   const [activeTab, setActiveTab] = useState('productos');
   
   // Estados para Importación
@@ -100,10 +101,8 @@ const AdminPanel = ({ onImportComplete }) => {
 
       const data = await response.json();
       setResult(data);
-      if (onImportComplete) {
-        setTimeout(() => {
-          onImportComplete();
-        }, 1000);
+      if (notifyCatalogChange) {
+        setTimeout(() => notifyCatalogChange(), 500);
       }
     } catch (err) {
       setError('Error al subir el archivo: ' + (err.message || 'Error desconocido'));
@@ -118,7 +117,7 @@ const AdminPanel = ({ onImportComplete }) => {
       const res = await fetch(`${API_BASE_URL}/admin/reclassify`, { method: 'POST' });
       const data = await res.json();
       alert(`Reclasificados: ${data.reclassified || 0} productos`);
-      if (onImportComplete) onImportComplete();
+      if (notifyCatalogChange) notifyCatalogChange();
     } catch (err) {
       console.error(err);
       alert('Error al reclasificar productos');
@@ -157,6 +156,7 @@ const AdminPanel = ({ onImportComplete }) => {
       fetchMacrocategorias();
       setEditingMacrocategoria(null);
       setMacrocategoriaForm({ nombre: '', identificadorIcono: '', activo: true });
+      if (notifyCatalogChange) notifyCatalogChange();
     } catch (err) {
       console.error(err);
     }
@@ -167,6 +167,7 @@ const AdminPanel = ({ onImportComplete }) => {
       try {
         await fetch(`${API_BASE_URL}/macrocategorias/${id}`, { method: 'DELETE' });
         fetchMacrocategorias();
+        if (notifyCatalogChange) notifyCatalogChange();
       } catch (err) {
         console.error(err);
       }
@@ -208,6 +209,7 @@ const AdminPanel = ({ onImportComplete }) => {
       fetchMacrocategorias();
       setEditingCategoria(null);
       setCategoriaForm({ nombre: '', imagenUrl: '', activo: true, macrocategoriaId: '' });
+      if (notifyCatalogChange) notifyCatalogChange();
     } catch (err) {
       console.error(err);
     }
@@ -218,6 +220,7 @@ const AdminPanel = ({ onImportComplete }) => {
       try {
         await fetch(`${API_BASE_URL}/categorias/${id}`, { method: 'DELETE' });
         fetchCategorias();
+        if (notifyCatalogChange) notifyCatalogChange();
       } catch (err) {
         console.error(err);
       }
